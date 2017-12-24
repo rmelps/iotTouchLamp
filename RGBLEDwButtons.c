@@ -6,6 +6,9 @@
 #include <avr/power.h>
 #include "rgbledPinDefines.h"
 #include "USART.h"
+#include "SPI.h"
+
+#define COLOR_SAVE_DELAY_COUNT		39063
 
 // ------ GLOBALS -------
 
@@ -29,6 +32,21 @@ ISR (PCINT1_vect) {
 	if ((BUTTON_PIN & (1 << BBUTTON)) == 0) {
 		bBrightness += 15;
 	}
+
+	// Set Timer 1 count to 0
+	TCNT1 = 0;
+	// Clear flag on compare match A
+	TIFR1 |= (1 << OCF1A);
+	// Enable interrupts on Timer 1, to keep track of delay after user selects a color
+	TIMSK1 |= (1 << OCIE1A);
+}
+
+ISR (TIMER1_COMPA_vect) {
+	// Called when the output color has changed and has remained constant for 
+	// at least the amount of time in the COLOR_SAVE_DELAY_COUNT
+	printString("Time to Reset \r\n");
+	// Disable interrupts on Timer 1
+	TIMSK1 &= ~(1 << OCIE1A);
 }
 
 static inline void initTimers(void) {
@@ -39,7 +57,6 @@ static inline void initTimers(void) {
 
 	// Fast PWM mode, update OCRx at OCRA
 	TCCR0A |= (1 << WGM00) | (1 << WGM01);
-	//TCCR0B |= (1 << WGM02);
 
 	// Set fast PWM mode clock prescaler to F_CPU/256
 	TCCR0B |= (1 << CS02);
@@ -50,10 +67,22 @@ static inline void initTimers(void) {
 	// Clear OC0B on compare match, set OC0B at TOP
 	TCCR0A |= (1 << COM0B1);
 
+	// ------ TIMER 1 -------
+	// CTC Mode, no pin outputs. CTC mode, OCR1A: TOP
+	// Set prescaler to F_CPU/1024: 7812.5 Hz (assume 8MHz clock)
+	// This will give us a maximum count value of 8.388 seconds
+	TCCR1B |= (1 << WGM12) | (1 << CS12) | (1 << CS10);
+
+	// Set OCR1A so that an interrupt triggers at COLOR_SAVE_DEL_COUNT
+	OCR1A = COLOR_SAVE_DELAY_COUNT;
+
+	// Interrupts on Timer 1 will not be initially available. Only after the output
+	// color is updated.
+	//TIMSK1 |= (1 << OCIE1A)
+
 	// ------ TIMER 2 -------
 	// Fast PWM mode, update OCRx at OCRA
 	TCCR2A |= (1 << WGM20) | (1 << WGM21);
-	//TCCR2B |= (1 << WGM22);
 
 	// Set fast PWM mode clock prescaler to F_CPU/256
 	TCCR2B |= (1 << CS22) | (1 << CS21);
