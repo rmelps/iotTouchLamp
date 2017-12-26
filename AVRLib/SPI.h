@@ -1,11 +1,6 @@
 #include <avr/io.h>
 #include "rgbledPinDefines.h"
 
-// ----- Slaves -----
-// all slaves hooked up to master AVR
-#define EEPROM_SLAVE		0
-#define ESP8266_SLAVE		1
-
 // ----- Slave Selects -----
 
 #define EEPROM_SELECT 		SPI_PORT &= ~(1 << SPI_SS)
@@ -56,21 +51,29 @@
 
 // ----- Functions -----
 
-// GENERAL
+// --- GENERAL ---
 
 // Initialize SPI for Master mode
 void initSPI_Master(void);
 
 // Send 1 byte from AVR to selected slave
-void SPI_tradeByte(uint8_t byte, uint8_t slave);
+void SPI_tradeByte(uint8_t byte);
 
-// EEPROM SPECIFIC
+// --- EEPROM SPECIFIC ---
 
 // Read the currently stored value at given address
-uint8_t EEPROM_readByte(uint16_t address, uint8_t numberOfBytes);
+uint8_t EEPROM_readByte(uint16_t address);
+
+// Read an array of bytes, starting at the given address and continuing for
+// the requested number of bytes. Each byte that is read will be stored in an array at assignmentPointer
+void EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *assignmentPointer);
 
 // Write a given byte to a given address
 void EEPROM_writeByte(uint8_t byte, uint16_t address);
+
+// Write page of data, where each value is a 8 bit int and will be written
+// in the order in which it is placed in the array
+void EEPROM_writePage( uint16_t address, uint8_t numberOfBytes, volatile uint8_t *dataPointer);
 
 // Read the value from the STATUS register
 uint8_t EEPROM_readStatus(void);
@@ -80,10 +83,6 @@ void EEPROM_sendAddress(uint16_t address);
 
 // Enable Writing on the EEPROM. Used before any write commands.
 void EEPROM_writeEnable(void);
-
-// When SPI finishes a transmission and the completion flag is set,
-// this function should be called.
-void upon_SPI_complete(void);
 
 
 

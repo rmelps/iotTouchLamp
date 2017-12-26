@@ -9,12 +9,11 @@
 #include "SPI.h"
 
 #define COLOR_SAVE_DELAY_COUNT		39063
+#define COLOR_SAVE_ADDRESS			0
 
 // ------ GLOBALS -------
 
-volatile uint8_t rBrightness = 0;
-volatile uint8_t gBrightness = 0;
-volatile uint8_t bBrightness = 0;
+volatile uint8_t colorBalance[3] = {0, 0, 0};
 
 // ------ INTERRUPTS -------
 ISR (PCINT1_vect) {
@@ -24,13 +23,13 @@ ISR (PCINT1_vect) {
 	// by the pullup resistor unless the button is active)
 
 	if ((BUTTON_PIN & (1 << RBUTTON)) == 0) {
-		rBrightness += 15;
+		colorBalance[0] += 15;
 	}
 	if ((BUTTON_PIN & (1 << GBUTTON)) == 0) {
-		gBrightness += 15;
+		colorBalance[1] += 15;
 	}
 	if ((BUTTON_PIN & (1 << BBUTTON)) == 0) {
-		bBrightness += 15;
+		colorBalance[2] += 15;
 	}
 
 	// Set Timer 1 count to 0
@@ -44,7 +43,12 @@ ISR (PCINT1_vect) {
 ISR (TIMER1_COMPA_vect) {
 	// Called when the output color has changed and has remained constant for 
 	// at least the amount of time in the COLOR_SAVE_DELAY_COUNT
-	printString("Time to Reset \r\n");
+	printString("Writing... \r\n");
+
+	// Write the current configuration to EEPROM
+	EEPROM_writePage(COLOR_SAVE_ADDRESS,3, &colorBalance[0]);
+	printString("Written... \r\n");
+
 	// Disable interrupts on Timer 1
 	TIMSK1 &= ~(1 << OCIE1A);
 }
@@ -74,11 +78,13 @@ static inline void initTimers(void) {
 	TCCR1B |= (1 << WGM12) | (1 << CS12) | (1 << CS10);
 
 	// Set OCR1A so that an interrupt triggers at COLOR_SAVE_DEL_COUNT
+	// COLOR_SAVE_DEL_COUNT is derived from [t / (1/prescaler)] where t is the desired
+	// delay time, in seconds. 
 	OCR1A = COLOR_SAVE_DELAY_COUNT;
 
 	// Interrupts on Timer 1 will not be initially available. Only after the output
 	// color is updated.
-	//TIMSK1 |= (1 << OCIE1A)
+	// where TIMSK1 |= (1 << OCIE1A) will enable interrupt.
 
 	// ------ TIMER 2 -------
 	// Fast PWM mode, update OCRx at OCRA
@@ -104,6 +110,7 @@ int main(void) {
 
 	initTimers();
 	initUSART();
+	initSPI_Master();
 	initButtonInterrupts();
 
 	// ------ LED SETUP -------
@@ -117,14 +124,17 @@ int main(void) {
 	// Enable pullup resistors on BUTTON_PIN
 	BUTTON_PORT |= (1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON);
 
+	// ----- EEPROM CHECK -----
+	EEPROM_readPage(COLOR_SAVE_ADDRESS,3, &colorBalance[0]);
 
 	// ------ EVENT LOOP -------
 
 	while(1) {
 		sei();
-		OCR0A = rBrightness;
-		OCR0B = gBrightness;
-		OCR2B = bBrightness;
+
+		OCR0A = colorBalance[0];
+		OCR0B = colorBalance[1];
+		OCR2B = colorBalance[2];
 	}
 
 	return 1;

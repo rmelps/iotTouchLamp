@@ -15,45 +15,67 @@ void initSPI_Master(void) {
 	SPCR |= (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (1 << SPR0);
 }
 
-void SPI_tradeByte(uint8_t byte, uint8_t slave) {
-
-	// Pull low the correct slave select pin to prepare for data transfer
-	switch (slave) {
-		case EEPROM_SLAVE :
-			// Enable EEPROM SS Bit
-			EEPROM_SELECT;
-			break;
-		case ESP8266_SLAVE :
-			// Enable ESP8266 SS Bit
-			ESP8266_SELECT;
-			break;
-		default :
-			// Fill in with something more meaningful...
-			return;
-	}
-
+void SPI_tradeByte(uint8_t byte) {
 	// Load the byte to transfer into the SPDR register.
 	SPDR = byte;
 	loop_until_bit_is_set(SPSR, SPIF);
 }
 
-uint8_t EEPROM_readByte(uint16_t address, uint8_t numberOfBytes) {
-	SPI_tradeByte(EEPROM_READ, EEPROM_SLAVE);
+uint8_t EEPROM_readByte(uint16_t address) {
+	EEPROM_SELECT;
+	SPI_tradeByte(EEPROM_READ);
 	EEPROM_sendAddress(address);
-	SPI_tradeByte(0, EEPROM_SLAVE);
+	SPI_tradeByte(0);
 	EEPROM_DESELECT;
 	return (SPDR);
+}
+
+void EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *assignmentPointer) {
+	uint8_t i;
+	EEPROM_SELECT;
+	SPI_tradeByte(EEPROM_READ);
+	EEPROM_sendAddress(address);
+
+	for (i = 0; i < numberOfBytes; i++) {
+		SPI_tradeByte(0);
+		*(assignmentPointer + i) = SPDR;
+	}
+	EEPROM_DESELECT;
 }
 
 void EEPROM_writeByte(uint8_t byte, uint16_t address) {
 	// Enable Write actions
 	EEPROM_writeEnable();
 	// Send write command
-	SPI_tradeByte(EEPROM_WRITE, EEPROM_SLAVE);
+	EEPROM_SELECT;
+	SPI_tradeByte(EEPROM_WRITE);
 	// Send address
 	EEPROM_sendAddress(address);
 	// Send data
-	SPI_tradeByte(byte, EEPROM_SLAVE);
+	SPI_tradeByte(byte);
+	EEPROM_DESELECT;
+	// Wait until the write completes
+	while (EEPROM_readStatus() & (1 << EEPROM_WIP)) {;
+
+	}
+}
+
+void EEPROM_writePage( uint16_t address, uint8_t numberOfBytes, volatile uint8_t *dataPointer) {
+	uint8_t i;
+
+	// Enable Write actions
+	EEPROM_writeEnable();
+	// Send write command
+	EEPROM_SELECT;
+	SPI_tradeByte(EEPROM_WRITE);
+	// Send address
+	EEPROM_sendAddress(address);
+	// Send data
+	
+	for (i = 0; i < numberOfBytes; i++) {
+		SPI_tradeByte(*(dataPointer + i));
+	}
+	
 	EEPROM_DESELECT;
 	// Wait until the write completes
 	while (EEPROM_readStatus() & (1 << EEPROM_WIP)) {;
@@ -62,8 +84,9 @@ void EEPROM_writeByte(uint8_t byte, uint16_t address) {
 }
 
 uint8_t EEPROM_readStatus(void) {
-	SPI_tradeByte(EEPROM_RDSR, EEPROM_SLAVE);
-	SPI_tradeByte(0, EEPROM_SLAVE);
+	EEPROM_SELECT;
+	SPI_tradeByte(EEPROM_RDSR);
+	SPI_tradeByte(0);
 	EEPROM_DESELECT;
 	return (SPDR);
 }
@@ -71,14 +94,14 @@ uint8_t EEPROM_readStatus(void) {
 void EEPROM_sendAddress(uint16_t address) {
 	// First send the MSB of the address, then send LSB. Casting as 8 bit int
 	// and shifting will give MSB, and simply casting will give LSB.
-	SPI_tradeByte((uint8_t) (address >> 8), EEPROM_SLAVE);
-  	SPI_tradeByte((uint8_t) address, EEPROM_SLAVE); 
+	SPI_tradeByte((uint8_t) (address >> 8));
+  	SPI_tradeByte((uint8_t) address); 
 }
 
 void EEPROM_writeEnable(void) {
 	// Select the EEPROM
 	EEPROM_SELECT;
-	SPI_tradeByte(EEPROM_WREN, EEPROM_SLAVE);
+	SPI_tradeByte(EEPROM_WREN);
 	// Slave must be deselected after receiving command to enable writes
   	EEPROM_DESELECT;
 }
