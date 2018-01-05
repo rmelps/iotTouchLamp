@@ -1,3 +1,6 @@
+// R Melpignano 26 DEC 2017
+// ------------------------
+
 #include <avr/io.h>
 #include "SPI.h"
 

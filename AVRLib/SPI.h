@@ -1,3 +1,7 @@
+// R Melpignano 26 DEC 2017
+// ------------------------
+// Intended for use with the 25LC256 EEPROM chip & ESP8266 Wifi module
+
 #include <avr/io.h>
 #include "rgbledPinDefines.h"
 

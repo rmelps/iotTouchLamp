@@ -7,6 +7,7 @@
 #include "rgbledPinDefines.h"
 #include "USART.h"
 #include "SPI.h"
+#include "ATCommands.h"
 
 #define COLOR_SAVE_DELAY_COUNT		39063
 #define COLOR_SAVE_ADDRESS			0
@@ -125,7 +126,12 @@ int main(void) {
 	BUTTON_PORT |= (1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON);
 
 	// ----- EEPROM CHECK -----
-	EEPROM_readPage(COLOR_SAVE_ADDRESS,3, &colorBalance[0]);
+	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), &colorBalance[0]);
+
+	// ----- AT COMMANDS -----
+	setDefaultWifiMode();
+	listAvailableAPs();
+	connectToAPI("ABCD","12345");
 
 	// ------ EVENT LOOP -------
 
@@ -137,5 +143,6 @@ int main(void) {
 		OCR2B = colorBalance[2];
 	}
 
-	return 1;
+	// This line is never reached
+	return 0;
 }
