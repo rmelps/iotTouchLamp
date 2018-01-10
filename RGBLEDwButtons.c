@@ -12,9 +12,40 @@
 #define COLOR_SAVE_DELAY_COUNT		39063
 #define COLOR_SAVE_ADDRESS			0
 
-// ------ GLOBALS -------
+#define COMMAND_BUFFER_COUNT		sizeof(commands)/sizeof(commands[0])
 
-volatile uint8_t colorBalance[3] = {0, 0, 0};
+// ------ COMMANDS -------
+typedef void(*commandFuncs)(char *parameters[], uint8_t len);
+
+
+struct commandStruct {
+	const commandFuncs execute;
+	char *parameters[10];
+};
+
+// The AT commands to be executed, in order. iCommands keeps track of the current command being executed
+const struct commandStruct commands[] = {
+	{
+		&setCurrentWifiMode,
+		"1"
+	}, 
+	{
+		&listAvailableAPs,
+		""
+	},
+	{
+		&connectToAPI,
+		{"ssid", "pass"}
+	},
+	{
+		&connectToAPI,
+		{"ssid", "pass"}
+	}
+};
+
+// ----- GLOBALS -----
+volatile uint8_t colorBalance[3];
+volatile uint8_t iCommands;
 
 // ------ INTERRUPTS -------
 ISR (PCINT1_vect) {
@@ -107,12 +138,31 @@ static inline void initButtonInterrupts(void) {
 }
 
 int main(void) {
+	// ----- VARS -----
+	//uint8_t
+
+
 	// ------ INITS -------
 
 	initTimers();
 	initUSART();
 	initSPI_Master();
-	initButtonInterrupts();
+
+	// ----- EEPROM CHECK -----
+	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), &colorBalance[0]);
+
+	// ----- AT COMMANDS -----
+	/*
+	char *ssidPass[] = {
+		"ssid",
+		"password"
+	};
+	*/
+
+	for (uint16_t i = 0; i < COMMAND_BUFFER_COUNT; i++) {
+		commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
+		iCommands += 1;
+	}
 
 	// ------ LED SETUP -------
 
@@ -125,18 +175,15 @@ int main(void) {
 	// Enable pullup resistors on BUTTON_PIN
 	BUTTON_PORT |= (1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON);
 
-	// ----- EEPROM CHECK -----
-	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), &colorBalance[0]);
+	// ----- INTERRUPT INIT ------
+	initButtonInterrupts();
 
-	// ----- AT COMMANDS -----
-	setDefaultWifiMode();
-	listAvailableAPs();
-	connectToAPI("ABCD","12345");
+	// Enable Global interrupts
+	sei();
 
 	// ------ EVENT LOOP -------
 
 	while(1) {
-		sei();
 
 		OCR0A = colorBalance[0];
 		OCR0B = colorBalance[1];

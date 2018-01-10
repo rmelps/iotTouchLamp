@@ -5,62 +5,22 @@
 #include <avr/pgmspace.h>
 #include "USART.h"
 
-// TCP request parameters
-const char AT_hostAddress[] PROGMEM = "us-central1-radio-free-america.cloudfunctions.net";
-const char AT_functionAddress[] PROGMEM = "/testFn";
-const char AT_requestType[] PROGMEM = "POST";
-const char AT_HTTPver[] PROGMEM = "HTTP/1.0\r";
-const char AT_TCPHostText[] PROGMEM = "Host:";
-
-
-// AT commands
-
-// Set default Wifi mode
-const char AT_cwmode_def[] PROGMEM = "AT+CWMODE_DEF=1\r";
-
-// List available AP's
-const char AT_cwlap[] PROGMEM = "AT+CWLAP\r";
-
-// Connect to desired AP
-const char AT_cwjap_cur[] PROGMEM = "AT+CWJAP_CUR=";
-
-// Send message byte count before sending actual request
-const char AT_cipsend[] PROGMEM = "AT+CIPSEND=";
-
-
 // AT functions
 
 // --Generic--
-void transmitFromPGMSpace(const char *p, uint8_t len) {
-	char character;
-	uint8_t i;
 
-	for (i = 0; i < len; i++){
-		character = pgm_read_byte(p+i);
-		transmitByte(character);
-		if (character == "\r") {
-			break;
-		}
-	}
-}
+// This commands takes strings saved in PGM space and transmits them sequentially over UART serial.
+void transmitFromPGMSpace(const char *p, uint8_t len);
 
 // --Commands to send--
 
-void setDefaultWifiMode(void) {
-	transmitFromPGMSpace(&AT_cwmode_def[0], (sizeof(AT_cwmode_def) - 1));
-}
+// Sets the current wifi mode to either Station (1), SoftAP(2), or both (3)
+void setCurrentWifiMode(char *parameters[], uint8_t len);
 
-void listAvailableAPs(void) {
-	transmitFromPGMSpace(&AT_cwlap[0], (sizeof(AT_cwlap) - 1));
-}
+// Lists all available access points discovered by ESP8266
+void listAvailableAPs(char *parameters[], uint8_t len);
 
-void connectToAPI(const char ssid[], const char pswd[]) {
-	transmitFromPGMSpace(&AT_cwjap_cur[0], (sizeof(AT_cwjap_cur) - 1));
-	printString("\"");
-	printString(ssid);
-	printString("\",\"");
-	printString(pswd);
-	printString("\"\r");
-}
+// connect to AP with specific ssid and password.
+void connectToAPI(char *parameters[], uint8_t len);
 
 
