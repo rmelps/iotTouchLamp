@@ -28,11 +28,12 @@ void initUSART(void) {                                /* requires BAUD */
 #else
   UCSR0A &= ~(1 << U2X0);
 #endif
-                                  /* Enable USART transmitter/receiver */
-  UCSR0B = (1 << TXEN0) | (1 << RXEN0);
+/* Enable USART transmitter/receiver */
+// Enable USART receiver interrupt
+
+  UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);
   UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);   /* 8 data bits, 1 stop bit */
 }
-
 
 void transmitByte(uint8_t data) {
                                      /* Wait for empty transmit buffer */
@@ -49,6 +50,14 @@ uint8_t receiveByte(void) {
                        /* Here are a bunch of useful printing commands */
 
 void printString(const char myString[]) {
+  uint8_t i = 0;
+  while (myString[i]) {
+    transmitByte(myString[i]);
+    i++;
+  }
+}
+
+void printVolatileString(volatile char myString[]) {
   uint8_t i = 0;
   while (myString[i]) {
     transmitByte(myString[i]);

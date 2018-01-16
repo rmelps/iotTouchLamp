@@ -15,12 +15,20 @@ void transmitFromPGMSpace(const char *p, uint8_t len);
 // --Commands to send--
 
 // Sets the current wifi mode to either Station (1), SoftAP(2), or both (3)
-void setCurrentWifiMode(char *parameters[], uint8_t len);
-
-// Lists all available access points discovered by ESP8266
-void listAvailableAPs(char *parameters[], uint8_t len);
+void ATsetCurrentWifiMode(char *parameters[], uint8_t len);
 
 // connect to AP with specific ssid and password.
-void connectToAPI(char *parameters[], uint8_t len);
+void ATconnectToAPI(char *parameters[], uint8_t len);
+
+// Set multiple connection mode
+void ATsetMultipleConnections(void);
+
+// Set Server on Port 80
+void ATsetupServer(void);
+
+// reset the ESP module
+void ATReset(void);
+
+
 
 

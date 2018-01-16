@@ -10,9 +10,21 @@
 #include "ATCommands.h"
 
 #define COLOR_SAVE_DELAY_COUNT		39063
-#define COLOR_SAVE_ADDRESS			0
+#define COLOR_SAVE_ADDRESS			EEPROM_PAGE_SIZE * 0
+#define SSID_SAVE_ADDRESS			EEPROM_PAGE_SIZE * 1
+#define PSWD_SAVE_ADDRESS			EEPROM_PAGE_SIZE * 2
 
-#define COMMAND_BUFFER_COUNT		sizeof(commands)/sizeof(commands[0])
+#define ARRAY_LENGTH(A)				sizeof(A)/sizeof(A[0])
+
+#define R_BUTTON_DOWN				(BUTTON_PIN & (1 << RBUTTON)) == 0
+#define G_BUTTON_DOWN				(BUTTON_PIN & (1 << GBUTTON)) == 0
+#define B_BUTTON_DOWN				(BUTTON_PIN & (1 << BBUTTON)) == 0
+
+// Connect to API parameters/execution
+#define API_CONNECT_COMMAND			commands[1]
+#define SSID_CONFIG					API_CONNECT_COMMAND.parameters[0]
+#define PSWD_CONFIG					API_CONNECT_COMMAND.parameters[1]
+#define API_CONNECT_EXECUTE			API_CONNECT_COMMAND.execute(API_CONNECT_COMMAND.parameters, sizeof(API_CONNECT_COMMAND.parameters));
 
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
@@ -20,25 +32,22 @@ typedef void(*commandFuncs)(char *parameters[], uint8_t len);
 
 struct commandStruct {
 	const commandFuncs execute;
-	char *parameters[10];
+	char *parameters[2];
 };
 
 // The AT commands to be executed, in order. iCommands keeps track of the current command being executed
-const struct commandStruct commands[] = {
+// These commands will be executed at startup
+struct commandStruct commands[] = {
 	{
-		&setCurrentWifiMode,
+		&ATsetCurrentWifiMode,
 		"1"
-	}, 
-	{
-		&listAvailableAPs,
-		""
 	},
 	{
-		&connectToAPI,
-		{"ssid", "pass"}
+		&ATconnectToAPI,
+		{"ss", "password"}
 	},
 	{
-		&connectToAPI,
+		&ATconnectToAPI,
 		{"ssid", "pass"}
 	}
 };
@@ -46,6 +55,10 @@ const struct commandStruct commands[] = {
 // ----- GLOBALS -----
 volatile uint8_t colorBalance[3];
 volatile uint8_t iCommands;
+volatile char receiveBuffer[30];
+volatile char temp[15];
+volatile uint8_t iReceiveBuffer;
+
 
 // ------ INTERRUPTS -------
 ISR (PCINT1_vect) {
@@ -54,14 +67,17 @@ ISR (PCINT1_vect) {
 	// we are comparing the input values on the button pin (which are pulled high
 	// by the pullup resistor unless the button is active)
 
-	if ((BUTTON_PIN & (1 << RBUTTON)) == 0) {
+	if (R_BUTTON_DOWN) {
 		colorBalance[0] += 15;
+		OCR0A = colorBalance[0];
 	}
-	if ((BUTTON_PIN & (1 << GBUTTON)) == 0) {
+	if (G_BUTTON_DOWN) {
 		colorBalance[1] += 15;
+		OCR0B = colorBalance[1];
 	}
-	if ((BUTTON_PIN & (1 << BBUTTON)) == 0) {
+	if (B_BUTTON_DOWN) {
 		colorBalance[2] += 15;
+		OCR2B = colorBalance[2];
 	}
 
 	// Set Timer 1 count to 0
@@ -78,11 +94,24 @@ ISR (TIMER1_COMPA_vect) {
 	printString("Writing... \r\n");
 
 	// Write the current configuration to EEPROM
-	EEPROM_writePage(COLOR_SAVE_ADDRESS,3, &colorBalance[0]);
+	EEPROM_writePage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
 	printString("Written... \r\n");
 
 	// Disable interrupts on Timer 1
 	TIMSK1 &= ~(1 << OCIE1A);
+}
+
+ISR (USART_RX_vect) {
+	char received = UDR0;
+	if (received == '\n') {
+		printVolatileString(receiveBuffer);
+		iReceiveBuffer = 0;
+		clearBuffer(receiveBuffer, ARRAY_LENGTH(receiveBuffer));
+	}
+	else {
+		receiveBuffer[iReceiveBuffer] = received;
+		iReceiveBuffer++;
+	}
 }
 
 static inline void initTimers(void) {
@@ -138,9 +167,9 @@ static inline void initButtonInterrupts(void) {
 }
 
 int main(void) {
-	// ----- VARS -----
-	//uint8_t
+	// ------ VARS -------
 
+	char ssid[30], pswd[30];
 
 	// ------ INITS -------
 
@@ -149,7 +178,7 @@ int main(void) {
 	initSPI_Master();
 
 	// ----- EEPROM CHECK -----
-	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), &colorBalance[0]);
+	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
 
 	// ----- AT COMMANDS -----
 	/*
@@ -159,10 +188,42 @@ int main(void) {
 	};
 	*/
 
-	for (uint16_t i = 0; i < COMMAND_BUFFER_COUNT; i++) {
+	// Enable Global interrupts
+	sei();
+
+	// ------ NETWORK SETUP ------
+	/*
+	char test[] = "testPSWD";
+	EEPROM_writePage(PSWD_SAVE_ADDRESS, sizeof(test), test);
+	*/
+
+	// 1. Retrieve saved SSID from EEPROM, if one exists
+
+	EEPROM_readPage(SSID_SAVE_ADDRESS, sizeof(ssid), ssid);
+
+	// If an ssid was found, grab the password from EEPROM and attempt to connect
+	if (ssid[0] != 0) {
+		SSID_CONFIG = ssid;
+
+		// Grab password from EEPROM
+		EEPROM_readPage(PSWD_SAVE_ADDRESS, sizeof(pswd), pswd);
+		PSWD_CONFIG = pswd;
+
+		// Attempt to connect to WiFi
+		API_CONNECT_EXECUTE;
+
+	} else {
+		// execute COMMANDS serially to setup WiFi connection
+		printString("could not find ssid\r\n");
+	}
+
+	for (uint16_t i = 0; i < ARRAY_LENGTH(commands); i++) {
 		commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
 		iCommands += 1;
 	}
+	
+	commands[2].parameters[0] = "updated";
+	commands[2].execute(commands[2].parameters, sizeof(commands[2].parameters));
 
 	// ------ LED SETUP -------
 
@@ -178,18 +239,24 @@ int main(void) {
 	// ----- INTERRUPT INIT ------
 	initButtonInterrupts();
 
-	// Enable Global interrupts
-	sei();
-
 	// ------ EVENT LOOP -------
 
-	while(1) {
+	// Initialize lamp color
+	OCR0A = colorBalance[0];
+	OCR0B = colorBalance[1];
+	OCR2B = colorBalance[2];
 
-		OCR0A = colorBalance[0];
-		OCR0B = colorBalance[1];
-		OCR2B = colorBalance[2];
+	while(1) {
+	// Can do anything here that needs to be looped
+	// CPU is currently freed up while waiting for interrupts
 	}
 
 	// This line is never reached
 	return 0;
+}
+
+void clearBuffer(char *array, uint8_t len) {
+	for (uint8_t i = 0; i < len; i++) {
+		*(array + i) = 0;
+	}
 }

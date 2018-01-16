@@ -52,6 +52,9 @@
 #define EEPROM_BP0			2
 #define EEPROM_BP1			3
 
+// ADDRESSES
+#define EEPROM_PAGE_SIZE	64
+
 
 // ----- Functions -----
 
@@ -70,7 +73,8 @@ uint8_t EEPROM_readByte(uint16_t address);
 
 // Read an array of bytes, starting at the given address and continuing for
 // the requested number of bytes. Each byte that is read will be stored in an array at assignmentPointer
-void EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *assignmentPointer);
+// Function returns the data length that was found at the start address before 0xFF was read.
+uint8_t EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *assignmentPointer);
 
 // Write a given byte to a given address
 void EEPROM_writeByte(uint8_t byte, uint16_t address);

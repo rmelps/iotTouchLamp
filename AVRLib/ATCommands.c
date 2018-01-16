@@ -14,10 +14,7 @@ const char AT_TCPHostText[] PROGMEM = "Host:";
 // AT commands
 
 // Set current Wifi mode
-const char AT_cwmode_def[] PROGMEM = "AT+CWMODE_CUR=";
-
-// List available AP's
-const char AT_cwlap[] PROGMEM = "AT+CWLAP\r\n";
+const char AT_cwmode_cur[] PROGMEM = "AT+CWMODE_CUR=";
 
 // Connect to desired AP, first argument being ssid, second being password
 const char AT_cwjap_cur[] PROGMEM = "AT+CWJAP_CUR=";
@@ -55,17 +52,13 @@ void transmitFromPGMSpace(const char *p, uint8_t len) {
 
 // --Commands to send--
 
-void setCurrentWifiMode(char *parameters[], uint8_t len) {
-	transmitFromPGMSpace(&AT_cwmode_def[0], (sizeof(AT_cwmode_def) - 1));
+void ATsetCurrentWifiMode(char *parameters[], uint8_t len) {
+	transmitFromPGMSpace(&AT_cwmode_cur[0], (sizeof(AT_cwmode_cur) - 1));
 	printString(parameters[0]);
 	printString("\r\n");
 }
 
-void listAvailableAPs(char *parameters[], uint8_t len) {
-	transmitFromPGMSpace(&AT_cwlap[0], (sizeof(AT_cwlap) - 1));
-}
-
-void connectToAPI(char *parameters[], uint8_t len) {
+void ATconnectToAPI(char *parameters[], uint8_t len) {
 	transmitFromPGMSpace(&AT_cwjap_cur[0], (sizeof(AT_cwjap_cur) - 1));
 	printString("\"");
 	printString(parameters[0]);
@@ -73,3 +66,23 @@ void connectToAPI(char *parameters[], uint8_t len) {
 	printString(parameters[1]);
 	printString("\"\r\n");
 }
+
+void ATsetMultipleConnections(void) {
+
+}
+
+void ATsetupServer(void) {
+
+}
+
+void ATReset(void) {
+
+}
+
+
+
+
+
+
+
+

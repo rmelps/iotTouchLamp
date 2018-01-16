@@ -33,7 +33,7 @@ uint8_t EEPROM_readByte(uint16_t address) {
 	return (SPDR);
 }
 
-void EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *assignmentPointer) {
+uint8_t EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *assignmentPointer) {
 	uint8_t i;
 	EEPROM_SELECT;
 	SPI_tradeByte(EEPROM_READ);
@@ -41,9 +41,15 @@ void EEPROM_readPage(uint16_t address, uint8_t numberOfBytes, volatile uint8_t *
 
 	for (i = 0; i < numberOfBytes; i++) {
 		SPI_tradeByte(0);
+
+		if (SPDR == 0xFF) {
+			break;
+		}
+
 		*(assignmentPointer + i) = SPDR;
 	}
 	EEPROM_DESELECT;
+	return i;
 }
 
 void EEPROM_writeByte(uint8_t byte, uint16_t address) {
