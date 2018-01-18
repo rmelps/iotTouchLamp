@@ -10,7 +10,6 @@ const char AT_requestType[] PROGMEM = "POST";
 const char AT_HTTPver[] PROGMEM = "HTTP/1.0\r\n";
 const char AT_TCPHostText[] PROGMEM = "Host:";
 
-
 // AT commands
 
 // Set current Wifi mode

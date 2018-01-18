@@ -1,6 +1,6 @@
 // R Melpignano 26 DEC 2017
 // ------------------------
-// Intended for use with the 25LC256 EEPROM chip & ESP8266 Wifi module
+// Intended for use with the 25LC256 EEPROM chip
 
 #include <avr/io.h>
 #include "rgbledPinDefines.h"
@@ -9,9 +9,6 @@
 
 #define EEPROM_SELECT 		SPI_PORT &= ~(1 << SPI_SS)
 #define EEPROM_DESELECT 	SPI_PORT |= (1 << SPI_SS)
-
-#define ESP8266_SELECT 		PORTC &= ~(1 << PC0)
-#define ESP8266_DESELECT 	PORTC |= (1 << PC0)
 
 // ----- Commands for 25LC256 External EEPROM chip -----
 

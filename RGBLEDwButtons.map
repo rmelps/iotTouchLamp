@@ -15,7 +15,6 @@ Allocating common symbols
 Common symbol       size              file
 
 iReceiveBuffer      0x1               RGBLEDwButtons.o
-temp                0xf               RGBLEDwButtons.o
 iCommands           0x1               RGBLEDwButtons.o
 colorBalance        0x3               RGBLEDwButtons.o
 receiveBuffer       0x1e              RGBLEDwButtons.o
@@ -268,7 +267,7 @@ END GROUP
 .rela.plt
  *(.rela.plt)
 
-.text           0x00000000      0x5e6
+.text           0x00000000      0x63a
  *(.vectors)
  .vectors       0x00000000       0x68 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/../../../../avr/lib/avr5/crtm168.o
                 0x00000000                __vectors
@@ -364,61 +363,64 @@ END GROUP
                 0x0000012e       0x6c RGBLEDwButtons.o
                 0x0000012e                __vector_11
  .text.startup.main
-                0x0000019a      0x176 RGBLEDwButtons.o
+                0x0000019a      0x164 RGBLEDwButtons.o
                 0x0000019a                main
  .text.clearBuffer
-                0x00000310       0x12 RGBLEDwButtons.o
-                0x00000310                clearBuffer
+                0x000002fe       0x12 RGBLEDwButtons.o
+                0x000002fe                clearBuffer
+ .text.compareString
+                0x00000310       0x1e RGBLEDwButtons.o
+                0x00000310                compareString
  .text.__vector_18
-                0x00000322       0x7c RGBLEDwButtons.o
-                0x00000322                __vector_18
+                0x0000032e       0xc4 RGBLEDwButtons.o
+                0x0000032e                __vector_18
  .text.transmitFromPGMSpace
-                0x0000039e       0x46 AVRLib/ATCommands.o
-                0x0000039e                transmitFromPGMSpace
+                0x000003f2       0x46 AVRLib/ATCommands.o
+                0x000003f2                transmitFromPGMSpace
  .text.ATsetCurrentWifiMode
-                0x000003e4       0x24 AVRLib/ATCommands.o
-                0x000003e4                ATsetCurrentWifiMode
+                0x00000438       0x24 AVRLib/ATCommands.o
+                0x00000438                ATsetCurrentWifiMode
  .text.ATconnectToAPI
-                0x00000408       0x3c AVRLib/ATCommands.o
-                0x00000408                ATconnectToAPI
+                0x0000045c       0x3c AVRLib/ATCommands.o
+                0x0000045c                ATconnectToAPI
  .text.initSPI_Master
-                0x00000444       0x14 AVRLib/SPI.o
-                0x00000444                initSPI_Master
+                0x00000498       0x14 AVRLib/SPI.o
+                0x00000498                initSPI_Master
  .text.SPI_tradeByte
-                0x00000458        0xa AVRLib/SPI.o
-                0x00000458                SPI_tradeByte
+                0x000004ac        0xa AVRLib/SPI.o
+                0x000004ac                SPI_tradeByte
  .text.EEPROM_readStatus
-                0x00000462       0x14 AVRLib/SPI.o
-                0x00000462                EEPROM_readStatus
+                0x000004b6       0x14 AVRLib/SPI.o
+                0x000004b6                EEPROM_readStatus
  .text.EEPROM_sendAddress
-                0x00000476       0x12 AVRLib/SPI.o
-                0x00000476                EEPROM_sendAddress
+                0x000004ca       0x12 AVRLib/SPI.o
+                0x000004ca                EEPROM_sendAddress
  .text.EEPROM_readPage
-                0x00000488       0x6a AVRLib/SPI.o
-                0x00000488                EEPROM_readPage
+                0x000004dc       0x6a AVRLib/SPI.o
+                0x000004dc                EEPROM_readPage
  .text.EEPROM_writeEnable
-                0x000004f2        0xc AVRLib/SPI.o
-                0x000004f2                EEPROM_writeEnable
+                0x00000546        0xc AVRLib/SPI.o
+                0x00000546                EEPROM_writeEnable
  .text.EEPROM_writePage
-                0x000004fe       0x66 AVRLib/SPI.o
-                0x000004fe                EEPROM_writePage
+                0x00000552       0x66 AVRLib/SPI.o
+                0x00000552                EEPROM_writePage
  .text.initUSART
-                0x00000564       0x22 AVRLib/USART.o
-                0x00000564                initUSART
+                0x000005b8       0x22 AVRLib/USART.o
+                0x000005b8                initUSART
  .text.transmitByte
-                0x00000586        0xe AVRLib/USART.o
-                0x00000586                transmitByte
+                0x000005da        0xe AVRLib/USART.o
+                0x000005da                transmitByte
  .text.printString
-                0x00000594       0x26 AVRLib/USART.o
-                0x00000594                printString
+                0x000005e8       0x26 AVRLib/USART.o
+                0x000005e8                printString
  .text.printVolatileString
-                0x000005ba       0x28 AVRLib/USART.o
-                0x000005ba                printVolatileString
-                0x000005e2                . = ALIGN (0x2)
+                0x0000060e       0x28 AVRLib/USART.o
+                0x0000060e                printVolatileString
+                0x00000636                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x000005e2        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
-                0x000005e2                exit
-                0x000005e2                _exit
+ .fini9         0x00000636        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+                0x00000636                exit
+                0x00000636                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -437,11 +439,11 @@ END GROUP
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x000005e2        0x4 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+ .fini0         0x00000636        0x4 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
  *(.fini0)
-                0x000005e6                _etext = .
+                0x0000063a                _etext = .
 
-.data           0x00800100       0x6a load address 0x000005e6
+.data           0x00800100       0x72 load address 0x0000063a
                 0x00800100                PROVIDE (__data_start, .)
  *(.data)
  .data          0x00800100        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/../../../../avr/lib/avr5/crtm168.o
@@ -455,44 +457,45 @@ END GROUP
  .data          0x00800100        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
  .data          0x00800100        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
  *(.data*)
+ .data.nextCommand
+                0x00800100        0x1 RGBLEDwButtons.o
+                0x00800100                nextCommand
  .data.commands
-                0x00800100       0x12 RGBLEDwButtons.o
-                0x00800100                commands
+                0x00800101       0x12 RGBLEDwButtons.o
+                0x00800101                commands
  *(.rodata)
  *(.rodata*)
  .rodata.str1.1
-                0x00800112       0x4f RGBLEDwButtons.o
-                                 0x52 (size before relaxing)
+                0x00800113       0x57 RGBLEDwButtons.o
+                                 0x5a (size before relaxing)
  .rodata.str1.1
-                0x00800161        0x8 AVRLib/ATCommands.o
+                0x0080016a        0x8 AVRLib/ATCommands.o
                                   0xd (size before relaxing)
  *(.gnu.linkonce.d*)
-                0x0080016a                . = ALIGN (0x2)
- *fill*         0x00800169        0x1 
-                0x0080016a                _edata = .
-                0x0080016a                PROVIDE (__data_end, .)
+                0x00800172                . = ALIGN (0x2)
+                0x00800172                _edata = .
+                0x00800172                PROVIDE (__data_end, .)
 
-.bss            0x0080016a       0x32
-                0x0080016a                PROVIDE (__bss_start, .)
+.bss            0x00800172       0x23
+                0x00800172                PROVIDE (__bss_start, .)
  *(.bss)
  *(.bss*)
  *(COMMON)
- COMMON         0x0080016a       0x32 RGBLEDwButtons.o
-                0x0080016a                iReceiveBuffer
-                0x0080016b                temp
-                0x0080017a                iCommands
-                0x0080017b                colorBalance
-                0x0080017e                receiveBuffer
-                0x0080019c                PROVIDE (__bss_end, .)
-                0x000005e6                __data_load_start = LOADADDR (.data)
-                0x00000650                __data_load_end = (__data_load_start + SIZEOF (.data))
+ COMMON         0x00800172       0x23 RGBLEDwButtons.o
+                0x00800172                iReceiveBuffer
+                0x00800173                iCommands
+                0x00800174                colorBalance
+                0x00800177                receiveBuffer
+                0x00800195                PROVIDE (__bss_end, .)
+                0x0000063a                __data_load_start = LOADADDR (.data)
+                0x000006ac                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x0080019c        0x0
-                0x0080019c                PROVIDE (__noinit_start, .)
+.noinit         0x00800195        0x0
+                0x00800195                PROVIDE (__noinit_start, .)
  *(.noinit*)
-                0x0080019c                PROVIDE (__noinit_end, .)
-                0x0080019c                _end = .
-                0x0080019c                PROVIDE (__heap_start, .)
+                0x00800195                PROVIDE (__noinit_end, .)
+                0x00800195                _end = .
+                0x00800195                PROVIDE (__heap_start, .)
 
 .eeprom         0x00810000        0x0
  *(.eeprom*)
@@ -551,91 +554,91 @@ END GROUP
 .debug_sfnames
  *(.debug_sfnames)
 
-.debug_aranges  0x00000000      0x200
+.debug_aranges  0x00000000      0x208
  *(.debug_aranges)
  .debug_aranges
-                0x00000000       0x40 RGBLEDwButtons.o
+                0x00000000       0x48 RGBLEDwButtons.o
  .debug_aranges
-                0x00000040       0x48 AVRLib/ATCommands.o
+                0x00000048       0x48 AVRLib/ATCommands.o
  .debug_aranges
-                0x00000088       0x60 AVRLib/SPI.o
+                0x00000090       0x60 AVRLib/SPI.o
  .debug_aranges
-                0x000000e8       0x78 AVRLib/USART.o
+                0x000000f0       0x78 AVRLib/USART.o
  .debug_aranges
-                0x00000160       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
+                0x00000168       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
  .debug_aranges
-                0x00000180       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
+                0x00000188       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
  .debug_aranges
-                0x000001a0       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+                0x000001a8       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
  .debug_aranges
-                0x000001c0       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
+                0x000001c8       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
  .debug_aranges
-                0x000001e0       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
+                0x000001e8       0x20 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
 
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x00000000     0x15a3
+.debug_info     0x00000000     0x15fc
  *(.debug_info)
- .debug_info    0x00000000      0x5c2 RGBLEDwButtons.o
- .debug_info    0x000005c2      0x47f AVRLib/ATCommands.o
- .debug_info    0x00000a41      0x389 AVRLib/SPI.o
- .debug_info    0x00000dca      0x423 AVRLib/USART.o
- .debug_info    0x000011ed       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
- .debug_info    0x000012ab       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
- .debug_info    0x00001369       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
- .debug_info    0x00001427       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
- .debug_info    0x000014e5       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
+ .debug_info    0x00000000      0x61b RGBLEDwButtons.o
+ .debug_info    0x0000061b      0x47f AVRLib/ATCommands.o
+ .debug_info    0x00000a9a      0x389 AVRLib/SPI.o
+ .debug_info    0x00000e23      0x423 AVRLib/USART.o
+ .debug_info    0x00001246       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
+ .debug_info    0x00001304       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
+ .debug_info    0x000013c2       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+ .debug_info    0x00001480       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
+ .debug_info    0x0000153e       0xbe /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev   0x00000000      0x71c
+.debug_abbrev   0x00000000      0x72c
  *(.debug_abbrev)
- .debug_abbrev  0x00000000      0x2a9 RGBLEDwButtons.o
- .debug_abbrev  0x000002a9      0x14d AVRLib/ATCommands.o
- .debug_abbrev  0x000003f6      0x14f AVRLib/SPI.o
- .debug_abbrev  0x00000545      0x173 AVRLib/USART.o
- .debug_abbrev  0x000006b8       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
- .debug_abbrev  0x000006cc       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
- .debug_abbrev  0x000006e0       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
- .debug_abbrev  0x000006f4       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
- .debug_abbrev  0x00000708       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
+ .debug_abbrev  0x00000000      0x2b9 RGBLEDwButtons.o
+ .debug_abbrev  0x000002b9      0x14d AVRLib/ATCommands.o
+ .debug_abbrev  0x00000406      0x14f AVRLib/SPI.o
+ .debug_abbrev  0x00000555      0x173 AVRLib/USART.o
+ .debug_abbrev  0x000006c8       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
+ .debug_abbrev  0x000006dc       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
+ .debug_abbrev  0x000006f0       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+ .debug_abbrev  0x00000704       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
+ .debug_abbrev  0x00000718       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
 
-.debug_line     0x00000000      0x71d
+.debug_line     0x00000000      0x72d
  *(.debug_line)
- .debug_line    0x00000000      0x18b RGBLEDwButtons.o
- .debug_line    0x0000018b       0xec AVRLib/ATCommands.o
- .debug_line    0x00000277      0x13f AVRLib/SPI.o
- .debug_line    0x000003b6      0x184 AVRLib/USART.o
- .debug_line    0x0000053a       0x62 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
- .debug_line    0x0000059c       0x6a /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
- .debug_line    0x00000606       0x58 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
- .debug_line    0x0000065e       0x61 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
- .debug_line    0x000006bf       0x5e /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
+ .debug_line    0x00000000      0x19b RGBLEDwButtons.o
+ .debug_line    0x0000019b       0xec AVRLib/ATCommands.o
+ .debug_line    0x00000287      0x13f AVRLib/SPI.o
+ .debug_line    0x000003c6      0x184 AVRLib/USART.o
+ .debug_line    0x0000054a       0x62 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
+ .debug_line    0x000005ac       0x6a /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
+ .debug_line    0x00000616       0x58 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+ .debug_line    0x0000066e       0x61 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
+ .debug_line    0x000006cf       0x5e /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
 
-.debug_frame    0x00000000      0x448
+.debug_frame    0x00000000      0x458
  *(.debug_frame)
- .debug_frame   0x00000000      0x114 RGBLEDwButtons.o
- .debug_frame   0x00000114       0xb0 AVRLib/ATCommands.o
- .debug_frame   0x000001c4      0x118 AVRLib/SPI.o
- .debug_frame   0x000002dc      0x16c AVRLib/USART.o
+ .debug_frame   0x00000000      0x124 RGBLEDwButtons.o
+ .debug_frame   0x00000124       0xb0 AVRLib/ATCommands.o
+ .debug_frame   0x000001d4      0x118 AVRLib/SPI.o
+ .debug_frame   0x000002ec      0x16c AVRLib/USART.o
 
-.debug_str      0x00000000      0x5a0
+.debug_str      0x00000000      0x5bd
  *(.debug_str)
- .debug_str     0x00000000      0x2f4 RGBLEDwButtons.o
-                                0x32d (size before relaxing)
- .debug_str     0x000002f4      0x140 AVRLib/ATCommands.o
+ .debug_str     0x00000000      0x311 RGBLEDwButtons.o
+                                0x34a (size before relaxing)
+ .debug_str     0x00000311      0x140 AVRLib/ATCommands.o
                                 0x2a4 (size before relaxing)
- .debug_str     0x00000434       0xad AVRLib/SPI.o
+ .debug_str     0x00000451       0xad AVRLib/SPI.o
                                 0x21c (size before relaxing)
- .debug_str     0x000004e1       0xbf AVRLib/USART.o
+ .debug_str     0x000004fe       0xbf AVRLib/USART.o
                                 0x23f (size before relaxing)
 
-.debug_loc      0x00000000      0xee3
+.debug_loc      0x00000000      0xf18
  *(.debug_loc)
- .debug_loc     0x00000000      0x2d0 RGBLEDwButtons.o
- .debug_loc     0x000002d0      0x23e AVRLib/ATCommands.o
- .debug_loc     0x0000050e      0x403 AVRLib/SPI.o
- .debug_loc     0x00000911      0x5d2 AVRLib/USART.o
+ .debug_loc     0x00000000      0x305 RGBLEDwButtons.o
+ .debug_loc     0x00000305      0x23e AVRLib/ATCommands.o
+ .debug_loc     0x00000543      0x403 AVRLib/SPI.o
+ .debug_loc     0x00000946      0x5d2 AVRLib/USART.o
 
 .debug_macinfo
  *(.debug_macinfo)
@@ -643,12 +646,12 @@ END GROUP
 .debug_pubtypes
  *(.debug_pubtypes)
 
-.debug_ranges   0x00000000      0x120
+.debug_ranges   0x00000000      0x128
  *(.debug_ranges)
- .debug_ranges  0x00000000       0x30 RGBLEDwButtons.o
- .debug_ranges  0x00000030       0x38 AVRLib/ATCommands.o
- .debug_ranges  0x00000068       0x50 AVRLib/SPI.o
- .debug_ranges  0x000000b8       0x68 AVRLib/USART.o
+ .debug_ranges  0x00000000       0x38 RGBLEDwButtons.o
+ .debug_ranges  0x00000038       0x38 AVRLib/ATCommands.o
+ .debug_ranges  0x00000070       0x50 AVRLib/SPI.o
+ .debug_ranges  0x000000c0       0x68 AVRLib/USART.o
 
 .debug_macro
  *(.debug_macro)
