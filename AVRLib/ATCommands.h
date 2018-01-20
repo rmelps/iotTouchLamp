@@ -7,6 +7,17 @@
 
 // AT functions
 
+// -- Mode setting --
+#define AT_CONFIGURING		0
+#define AT_WAITING			1
+
+// --- Network Responses ---
+#define PSWD_Q_STRING		'p'
+#define SSID_Q_STRING		's'
+
+
+uint8_t AT_currentMode;
+
 // --Generic--
 
 // This commands takes strings saved in PGM space and transmits them sequentially over UART serial.
@@ -21,13 +32,23 @@ void ATsetCurrentWifiMode(char *parameters[], uint8_t len);
 void ATconnectToAPI(char *parameters[], uint8_t len);
 
 // Set multiple connection mode
-void ATsetMultipleConnections(void);
+void ATsetMultipleConnections(char *parameters[], uint8_t len);
 
-// Set Server on Port 80
-void ATsetupServer(void);
+// Set Up Server, first parameter being the mode
+void ATsetupServer(char *parameters[], uint8_t len);
 
 // reset the ESP module
-void ATReset(void);
+void ATReset(char *parameters[], uint8_t len);
+
+// Start TCP Connection, first parameter being website, second being the port
+void ATTCPStart(char *parameters[], uint8_t len);
+
+// Send Data to network, first parameter being the number of bytes to send
+void ATSendData(char *parameters[], uint8_t len);
+
+// Wait for incoming data, indicated by '+' symbol
+void ATWaitForData(char *parameters[], uint8_t len);
+
 
 
 

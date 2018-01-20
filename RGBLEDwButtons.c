@@ -5,7 +5,6 @@
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
 
-
 struct commandStruct {
 	const commandFuncs execute;
 	char *parameters[2];
@@ -16,23 +15,48 @@ struct commandStruct {
 struct commandStruct commands[] = {
 	{
 		&ATsetCurrentWifiMode,
-		"1"
+		{"2"}
+	},
+	{
+		&ATsetMultipleConnections,
+		{""}
+	},
+	{
+		&ATsetupServer,
+		{"1"}
+	},
+	{
+		&ATWaitForData,
+		{""}
+	},
+	{
+		&ATsetCurrentWifiMode,
+		{"1"}
+	},
+	{
+		&ATsetupServer,
+		{"0"}
+	},
+	{
+		&ATReset,
+		{""}
+	},
+	{
+		&ATsetCurrentWifiMode,
+		{"1"}
 	},
 	{
 		&ATconnectToAPI,
 		{"ss", "password"}
-	},
-	{
-		&ATconnectToAPI,
-		{"ssid", "pass"}
 	}
 };
 
 // ----- GLOBALS -----
 volatile uint8_t colorBalance[3];
-volatile char receiveBuffer[30];
+volatile char receiveBuffer[BUFFER_SIZE];
 volatile uint8_t iCommands, iReceiveBuffer;
 volatile uint8_t nextCommand = 1;
+volatile char ssid[BUFFER_SIZE], pswd[BUFFER_SIZE];
 
 
 // ------ INTERRUPTS -------
@@ -78,19 +102,49 @@ ISR (TIMER1_COMPA_vect) {
 
 ISR (USART_RX_vect) {
 	char received = UDR0;
+
+	// New line character received, check buffer for response
 	if (received == '\n') {
+
+		// Received an OK command, indicating that the command executed successfully, and we can move onto
+		// the next command
 		if (compareString(receiveBuffer, "OK\r")){
 			nextCommand++;
 		}
-		else if (compareString(receiveBuffer, "ERROR\r")){
+		// Received an ERROR command, indicating that the command executed with an ERROR. We will try to reexecute
+		// the command, in case the error was due to unexpected communication errors
+		else if (compareString(receiveBuffer, "ER\r")){
 			iCommands--;
-		} 
-		else if (receiveBuffer[0] == '+') {
-			printString("network");
+		}
+		// Received a FAIL command, indicating the the API connection failed after attempting to connect. 
+		// We will need to reconfigure the network.
+		else if (compareString(receiveBuffer, "FA\r")) {
+			iCommands = 0;
+			nextCommand = 1;
+			clearBuffer(ssid, ARRAY_LENGTH(ssid));
+			clearBuffer(pswd, ARRAY_LENGTH(pswd));
 		}
 		else {
 			printVolatileString(receiveBuffer);
 		}
+
+		iReceiveBuffer = 0;
+		clearBuffer(receiveBuffer, ARRAY_LENGTH(receiveBuffer));
+	} 
+	// If the ESP8266 is acting as a server, received a space character, and either the SSID or Password is not configured,
+	// we will check the buffer for network data
+	else if ((AT_currentMode == AT_WAITING) && (received == ' ') && ((ssid[0] == 0) || (pswd[0] == 0))) {
+
+		if (receiveBuffer[0] == '+') {
+			printString("network");
+		}
+		else if (receiveBuffer[0] == '/') {
+			get_SSID_PSWD_fromQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
+			printVolatileString(ssid);
+			printString("\r\n");
+			printVolatileString(pswd);
+		}
+
 		iReceiveBuffer = 0;
 		clearBuffer(receiveBuffer, ARRAY_LENGTH(receiveBuffer));
 	} else {
@@ -152,10 +206,6 @@ static inline void initButtonInterrupts(void) {
 }
 
 int main(void) {
-	// ------ VARS -------
-
-	char ssid[30], pswd[30];
-
 	// ------ INITS -------
 
 	initTimers();
@@ -166,12 +216,6 @@ int main(void) {
 	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
 
 	// ----- AT COMMANDS -----
-	/*
-	char *ssidPass[] = {
-		"ssid",
-		"password"
-	};
-	*/
 
 	// Enable Global interrupts
 	sei();
@@ -183,43 +227,29 @@ int main(void) {
 	*/
 
 	// 1. Retrieve saved SSID from EEPROM, if one exists
-
+	SSID_CONFIG = ssid;
+	PSWD_CONFIG = pswd;
 	EEPROM_readPage(SSID_SAVE_ADDRESS, sizeof(ssid), ssid);
 
 	// If an ssid was found, grab the password from EEPROM and attempt to connect
-	//TODO: FOR TESTING ONLY!!! Alter the operator in the IF statement to skip this loop
-	// SHOULD BE RETURNED to '!=' for production
-	if (ssid[0] != 0) {
-		SSID_CONFIG = ssid;
-
+	if (ssid[0]) {
 		// Grab password from EEPROM
 		EEPROM_readPage(PSWD_SAVE_ADDRESS, sizeof(pswd), pswd);
-		PSWD_CONFIG = pswd;
 
-		// Attempt to connect to WiFi
-		API_CONNECT_EXECUTE;
+		// Attempt to connect to WiFi immediately by moving the command index forward
+		iCommands = API_CONNECT_COMMAND_INDEX;
+		nextCommand = API_CONNECT_COMMAND_INDEX + 1;
 
-	} else {
-		// execute COMMANDS serially to setup WiFi connection
-		while (iCommands < ARRAY_LENGTH(commands)) {
-			// TODO: Execute commands here
-			commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
-			iCommands++;
-			while (iCommands == nextCommand) {
-				// Wait until nextCommand is ready to be executed
-			}
-		}
 	}
-
-	/*
-	for (uint16_t i = 0; i < ARRAY_LENGTH(commands); i++) {
+	// execute COMMANDS serially to setup WiFi connection
+	while (iCommands < ARRAY_LENGTH(commands)) {
+		// TODO: Execute commands here
 		commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
 		iCommands++;
+		while (iCommands == nextCommand) {
+			// Wait until nextCommand is ready to be executed
+		}
 	}
-	
-	commands[2].parameters[0] = "updated";
-	commands[2].execute(commands[2].parameters, sizeof(commands[2].parameters));
-	*/
 
 	// ------ LED SETUP -------
 
@@ -242,7 +272,6 @@ int main(void) {
 	OCR0B = colorBalance[1];
 	OCR2B = colorBalance[2];
 
-	printString("Entering main loop");
 	while(1) {
 	// Can do anything here that needs to be looped
 	// CPU is currently freed up while waiting for interrupts
@@ -259,9 +288,47 @@ void clearBuffer(volatile char *array, uint8_t len) {
 }
 
 uint8_t compareString(volatile char *array, const char compStr[]) {
+	//TODO: Having trouble getting the correct array length from this macro
 	for (uint8_t i = 0; i < ARRAY_LENGTH(compStr); i++){
 		if (*(array + i) != compStr[i]) {
 			return 0;
+		}
+	}
+}
+
+void get_SSID_PSWD_fromQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len) {
+	uint8_t i;
+
+	while (i < len) {
+		if ((*(url + i) == '?') || (*(url + i) == '&')) {
+			if (*(url + i + 1) == SSID_Q_STRING) {
+				// skip to first char in ssid string
+				i += 3;
+				const uint8_t start = i;
+				// loop through this query string, until the end of the string is reached
+				// or another query is seen.
+				while ((*(url + i) != '&') && (i < len)) {
+					*(assignSSID + i - start) = *(url + i);
+					i++;
+				}
+			}
+			else if (*(url + i + 1) == PSWD_Q_STRING) {
+				// skip to first char in pswd string
+				i += 3;
+				const uint8_t start = i;
+				// loop through this query string, until the end of the string is reached
+				// or another query is seen.
+				while ((*(url + i) != '&') && (*(url + i) != 0)) {
+					*(assignPSWD + i - start) = *(url + i);
+					i++;
+				}
+			}
+			else {
+				i++;
+			}
+		}
+		else {
+			i++;
 		}
 	}
 }

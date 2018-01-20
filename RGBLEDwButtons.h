@@ -22,11 +22,16 @@
 #define B_BUTTON_DOWN				(BUTTON_PIN & (1 << BBUTTON)) == 0
 
 // Connect to API parameters/execution
-#define API_CONNECT_COMMAND			commands[1]
+#define API_CONNECT_COMMAND_INDEX	8
+#define API_CONNECT_COMMAND			commands[API_CONNECT_COMMAND_INDEX]
 #define SSID_CONFIG					API_CONNECT_COMMAND.parameters[0]
 #define PSWD_CONFIG					API_CONNECT_COMMAND.parameters[1]
 #define API_CONNECT_EXECUTE			API_CONNECT_COMMAND.execute(API_CONNECT_COMMAND.parameters, sizeof(API_CONNECT_COMMAND.parameters));
 
+#define BUFFER_SIZE					30
+
 void clearBuffer(volatile char *array, uint8_t len);
 
 uint8_t compareString(volatile char *array, const char compStr[]);
+
+void get_SSID_PSWD_fromQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len);
