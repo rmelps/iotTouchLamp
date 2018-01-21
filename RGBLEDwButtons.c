@@ -53,10 +53,10 @@ struct commandStruct commands[] = {
 
 // ----- GLOBALS -----
 volatile uint8_t colorBalance[3];
-volatile char receiveBuffer[BUFFER_SIZE];
+volatile char receiveBuffer[LAR_BUFFER_SIZE];
 volatile uint8_t iCommands, iReceiveBuffer;
 volatile uint8_t nextCommand = 1;
-volatile char ssid[BUFFER_SIZE], pswd[BUFFER_SIZE];
+volatile char ssid[SM_BUFFER_SIZE], pswd[SM_BUFFER_SIZE];
 
 
 // ------ INTERRUPTS -------
@@ -124,9 +124,6 @@ ISR (USART_RX_vect) {
 			clearBuffer(ssid, ARRAY_LENGTH(ssid));
 			clearBuffer(pswd, ARRAY_LENGTH(pswd));
 		}
-		else {
-			printVolatileString(receiveBuffer);
-		}
 
 		iReceiveBuffer = 0;
 		clearBuffer(receiveBuffer, ARRAY_LENGTH(receiveBuffer));
@@ -139,10 +136,7 @@ ISR (USART_RX_vect) {
 			printString("network");
 		}
 		else if (receiveBuffer[0] == '/') {
-			get_SSID_PSWD_fromQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
-			printVolatileString(ssid);
-			printString("\r\n");
-			printVolatileString(pswd);
+			get_SSID_PSWD_fromPartialQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
 		}
 
 		iReceiveBuffer = 0;
@@ -296,34 +290,31 @@ uint8_t compareString(volatile char *array, const char compStr[]) {
 	}
 }
 
-void get_SSID_PSWD_fromQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len) {
+void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len) {
 	uint8_t i;
+	char *p;
 
 	while (i < len) {
 		if ((*(url + i) == '?') || (*(url + i) == '&')) {
+			const uint8_t start;
+
 			if (*(url + i + 1) == SSID_Q_STRING) {
-				// skip to first char in ssid string
-				i += 3;
-				const uint8_t start = i;
-				// loop through this query string, until the end of the string is reached
-				// or another query is seen.
-				while ((*(url + i) != '&') && (i < len)) {
-					*(assignSSID + i - start) = *(url + i);
-					i++;
-				}
+				p = assignSSID;
 			}
 			else if (*(url + i + 1) == PSWD_Q_STRING) {
-				// skip to first char in pswd string
-				i += 3;
-				const uint8_t start = i;
-				// loop through this query string, until the end of the string is reached
-				// or another query is seen.
-				while ((*(url + i) != '&') && (*(url + i) != 0)) {
-					*(assignPSWD + i - start) = *(url + i);
-					i++;
-				}
+				p = assignPSWD;
 			}
 			else {
+				i++;
+				continue;
+			}
+			// skip to first char in ssid string
+			i += 3;
+			start = i;
+			// loop through this query string, until the end of the string is reached
+			// or another query is seen.
+			while ((*(url + i) != '&') && (*(url + i) != 0)) {
+				*(p + i - start) = *(url + i);
 				i++;
 			}
 		}

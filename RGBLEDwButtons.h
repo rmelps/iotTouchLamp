@@ -28,10 +28,11 @@
 #define PSWD_CONFIG					API_CONNECT_COMMAND.parameters[1]
 #define API_CONNECT_EXECUTE			API_CONNECT_COMMAND.execute(API_CONNECT_COMMAND.parameters, sizeof(API_CONNECT_COMMAND.parameters));
 
-#define BUFFER_SIZE					30
+#define SM_BUFFER_SIZE				30
+#define LAR_BUFFER_SIZE				60
 
 void clearBuffer(volatile char *array, uint8_t len);
 
 uint8_t compareString(volatile char *array, const char compStr[]);
 
-void get_SSID_PSWD_fromQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len);
+void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len);
