@@ -8,12 +8,20 @@
 // AT functions
 
 // -- Mode setting --
-#define AT_CONFIGURING		0
-#define AT_WAITING			1
+#define AT_CONFIGURING			0
+#define AT_WAITING				1
+#define AT_SENDING				2
+#define AT_CONNECTING			3
+#define AT_CLOSING				4
 
 // --- Network Responses ---
-#define PSWD_Q_STRING		'p'
-#define SSID_Q_STRING		's'
+#define PSWD_Q_STRING			'p'
+#define SSID_Q_STRING			's'
+#define LINK_ID_LOC				5
+
+// --- Request Route Identifiers ---
+#define HOME_ROUTE				0
+#define NETWORK_CONFIG_ROUTE	'i'
 
 
 uint8_t AT_currentMode;
@@ -44,10 +52,16 @@ void ATReset(char *parameters[], uint8_t len);
 void ATTCPStart(char *parameters[], uint8_t len);
 
 // Send Data to network, first parameter being the number of bytes to send
-void ATSendData(char *parameters[], uint8_t len);
+void ATSendResp(char *parameters[], uint8_t len);
 
 // Wait for incoming data, indicated by '+' symbol
 void ATWaitForData(char *parameters[], uint8_t len);
+
+// Send the actual data to the network, this follows the ATSendResp command
+void ATSendData(char *parameters[], uint8_t len);
+
+// Close transmission after sending response
+void ATClose(char *parameters[], uint8_t len);
 
 
 

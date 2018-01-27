@@ -3,6 +3,7 @@
 #include "RGBLEDwButtons.h"
 
 // ------ COMMANDS -------
+volatile char linkID[] = "0";
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
 
 struct commandStruct {
@@ -30,6 +31,18 @@ struct commandStruct commands[] = {
 		{""}
 	},
 	{
+		&ATSendResp,
+		{""}
+	},
+	{
+		&ATSendData,
+		{""}
+	},
+	{
+		&ATClose,
+		{""}
+	},
+	{
 		&ATsetCurrentWifiMode,
 		{"1"}
 	},
@@ -47,7 +60,7 @@ struct commandStruct commands[] = {
 	},
 	{
 		&ATconnectToAPI,
-		{"ss", "password"}
+		{"s", "p"}
 	}
 };
 
@@ -108,21 +121,56 @@ ISR (USART_RX_vect) {
 
 		// Received an OK command, indicating that the command executed successfully, and we can move onto
 		// the next command
-		if (compareString(receiveBuffer, "OK\r")){
-			nextCommand++;
-		}
-		// Received an ERROR command, indicating that the command executed with an ERROR. We will try to reexecute
-		// the command, in case the error was due to unexpected communication errors
-		else if (compareString(receiveBuffer, "ER\r")){
-			iCommands--;
-		}
-		// Received a FAIL command, indicating the the API connection failed after attempting to connect. 
-		// We will need to reconfigure the network.
-		else if (compareString(receiveBuffer, "FA\r")) {
-			iCommands = 0;
-			nextCommand = 1;
-			clearBuffer(ssid, ARRAY_LENGTH(ssid));
-			clearBuffer(pswd, ARRAY_LENGTH(pswd));
+		if (compareString(receiveBuffer, "OK\r", 3)){
+
+			switch (AT_currentMode) {
+				case AT_SENDING:
+					// do nothing if sending, waiting for '<' char
+					break;
+				case AT_CLOSING:
+					// check to see if we have an ssid, if we do, continue.
+					// If not, need to keep waiting
+					if (ssid[0]) {
+						nextCommand++;
+					} else {
+						// return to waiting command
+						iCommands = API_WAITING_COMMAND_INDEX;
+						nextCommand = API_WAITING_COMMAND_INDEX + 1;
+					}
+					break;
+				default:
+					nextCommand++;
+					break;
+			}
+
+		} else {
+			switch (AT_currentMode) {
+				case AT_CONFIGURING:
+					// Received an ERROR command, indicating that the command executed with an ERROR. We will try to reexecute
+					// the command, in case the error was due to unexpected communication errors
+					if (compareString(receiveBuffer, "ERROR\r", 6)){
+						iCommands--;
+					}
+					break;
+				case AT_CONNECTING:
+					// Received a FAIL command, indicating the the API connection failed after attempting to connect. 
+					// We will need to reconfigure the network.
+					if (compareString(receiveBuffer, "FAIL\r", 5)) {
+						iCommands = 0;
+						nextCommand = 1;
+						clearBuffer(ssid, ARRAY_LENGTH(ssid));
+						clearBuffer(pswd, ARRAY_LENGTH(pswd));
+					}
+					break;
+				case AT_SENDING:
+					// Received a SEND OK command, can close transmission (next command)
+					if (compareString(receiveBuffer, "SEND OK\r", 8)){
+						nextCommand++;
+					}
+					break;
+				default:
+					break;
+			}
 		}
 
 		iReceiveBuffer = 0;
@@ -130,18 +178,40 @@ ISR (USART_RX_vect) {
 	} 
 	// If the ESP8266 is acting as a server, received a space character, and either the SSID or Password is not configured,
 	// we will check the buffer for network data
-	else if ((AT_currentMode == AT_WAITING) && (received == ' ') && ((ssid[0] == 0) || (pswd[0] == 0))) {
+	else if ((AT_currentMode == AT_WAITING) && (received == ' ') && !((ssid[0]) || (pswd[0]))) {
 
 		if (receiveBuffer[0] == '+') {
-			printString("network");
+			//TODO: linkID[0] is following whatever receiveBuffer is becoming, so is constantly shifting.
+			// Needs to copy the current value
+			linkID[0] = receiveBuffer[LINK_ID_LOC];
+			API_RESPONSE_LINK_ID = linkID;
+			API_CLOSE_LINK_ID = linkID;
 		}
 		else if (receiveBuffer[0] == '/') {
-			get_SSID_PSWD_fromPartialQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
+			//Need to determine the route, and respond appropriately.
+			// Rudimentary implementation, but we will only check the character
+			// immediately proceeding the '/' character, to quickly determine route
+			if (receiveBuffer[1] == HOME_ROUTE) {
+				// present home screen
+				commands[iCommands].parameters[1] = HOME_ROUTE;
+				commands[iCommands + 1].parameters[1] = HOME_ROUTE;
+				printString("HOME!!!");
+			}
+			else if (receiveBuffer[1] == NETWORK_CONFIG_ROUTE) {
+				get_SSID_PSWD_fromPartialQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
+				// present "thank you" screen
+				commands[iCommands].parameters[1] = NETWORK_CONFIG_ROUTE;
+				commands[iCommands + 1].parameters[1] = NETWORK_CONFIG_ROUTE;
+			}
 		}
 
 		iReceiveBuffer = 0;
 		clearBuffer(receiveBuffer, ARRAY_LENGTH(receiveBuffer));
-	} else {
+	}
+	else if ((AT_currentMode == AT_SENDING) && (received == '>')) {
+		nextCommand++;
+	}
+	else {
 		receiveBuffer[iReceiveBuffer] = received;
 		iReceiveBuffer++;
 	}
@@ -223,8 +293,8 @@ int main(void) {
 	// 1. Retrieve saved SSID from EEPROM, if one exists
 	SSID_CONFIG = ssid;
 	PSWD_CONFIG = pswd;
-	EEPROM_readPage(SSID_SAVE_ADDRESS, sizeof(ssid), ssid);
 
+	EEPROM_readPage(SSID_SAVE_ADDRESS, sizeof(ssid), ssid);
 	// If an ssid was found, grab the password from EEPROM and attempt to connect
 	if (ssid[0]) {
 		// Grab password from EEPROM
@@ -238,13 +308,14 @@ int main(void) {
 	// execute COMMANDS serially to setup WiFi connection
 	while (iCommands < ARRAY_LENGTH(commands)) {
 		// TODO: Execute commands here
+		//transmitByte(ssid[0]);
+		//transmitByte(pswd[0]);
 		commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
 		iCommands++;
 		while (iCommands == nextCommand) {
 			// Wait until nextCommand is ready to be executed
 		}
 	}
-
 	// ------ LED SETUP -------
 
 	// Set LED data direction to output on connected LEDs
@@ -281,13 +352,14 @@ void clearBuffer(volatile char *array, uint8_t len) {
 	}
 }
 
-uint8_t compareString(volatile char *array, const char compStr[]) {
+uint8_t compareString(volatile char *array, const char compStr[], uint8_t len) {
 	//TODO: Having trouble getting the correct array length from this macro
-	for (uint8_t i = 0; i < ARRAY_LENGTH(compStr); i++){
+	for (uint8_t i = 0; i < len; i++){
 		if (*(array + i) != compStr[i]) {
 			return 0;
 		}
 	}
+	return 1;
 }
 
 void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len) {
@@ -296,7 +368,6 @@ void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *ass
 
 	while (i < len) {
 		if ((*(url + i) == '?') || (*(url + i) == '&')) {
-			const uint8_t start;
 
 			if (*(url + i + 1) == SSID_Q_STRING) {
 				p = assignSSID;
@@ -310,7 +381,7 @@ void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *ass
 			}
 			// skip to first char in ssid string
 			i += 3;
-			start = i;
+			const uint8_t start = i;
 			// loop through this query string, until the end of the string is reached
 			// or another query is seen.
 			while ((*(url + i) != '&') && (*(url + i) != 0)) {
@@ -323,3 +394,8 @@ void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *ass
 		}
 	}
 }
+
+
+
+
+

@@ -15,6 +15,10 @@ const char AT_HTTPver[] PROGMEM = "HTTP/1.0\r\n";
 const char AT_TCPHostText[] PROGMEM = "Host:";
 const char AT_port[] PROGMEM = "80";
 
+// Webpages
+const char AT_WP_home[] PROGMEM = "<h1>Welcome!</h1><h4>Please enter your network information to begin using your touch lamp!</h4><form action=\"/i\"><input type=\"text\" name=\"s\" placeholder=\"SSID\"><input type=\"text\" name=\"p\" placeholder=\"password\"><input type=\"submit\"></form>\r\n";
+const char AT_WP_submit[] PROGMEM = "<h1>Thank you!</h1><p>Please follow the instructions provided with your touchlamp to finish setup<p>";
+
 // AT commands
 
 // Set current Wifi mode
@@ -39,6 +43,9 @@ const char AT_rst[] PROGMEM = "AT+RST\r\n";
 
 // Start TCP connection with server
 const char AT_cipstart[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
+
+// Close transmission
+const char AT_cipclose[] PROGMEM = "AT+CIPCLOSE=";
 
 // --Generic--
 void transmitFromPGMSpace(const char *p, uint8_t len) {
@@ -72,6 +79,7 @@ void ATconnectToAPI(char *parameters[], uint8_t len) {
 	transmitFromPGMSpace(AT_separator, (sizeof(AT_separator)));
 	printString(parameters[1]);
 	transmitFromPGMSpace(AT_terminator, (sizeof(AT_terminator)));
+	AT_currentMode = AT_CONNECTING;
 }
 
 void ATsetMultipleConnections(char *parameters[], uint8_t len) {
@@ -84,7 +92,6 @@ void ATsetupServer(char *parameters[], uint8_t len) {
 	printString(",");
 	transmitFromPGMSpace(AT_port, (sizeof(AT_port)));
 	printString("\r\n");
-	AT_currentMode = AT_WAITING;
 }
 
 void ATReset(char *parameters[], uint8_t len) {
@@ -92,15 +99,42 @@ void ATReset(char *parameters[], uint8_t len) {
 }
 
 void ATWaitForData(char *parameters[], uint8_t len) {
-	// Do nothing, waiting will be done in loop
+	AT_currentMode = AT_WAITING;
 }
 
 void ATTCPStart(char *parameters[], uint8_t len) {
 
 }
 
-void ATSendData(char *parameters[], uint8_t len) {
+void ATSendResp(char *parameters[], uint8_t len) {
+	transmitFromPGMSpace(AT_cipsend, (sizeof(AT_cipsend)));
+	printString(parameters[0]);
+	printString(",");
+	if (parameters[1] == HOME_ROUTE) {
+		printByte(sizeof(AT_WP_home));
+	}
+	else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
+		printByte(sizeof(AT_WP_submit));
+	}
+	printString("\r\n");
+	AT_currentMode = AT_SENDING;
+}
 
+void ATSendData(char *parameters[], uint8_t len) {
+	if (parameters[1] == HOME_ROUTE) {
+		transmitFromPGMSpace(AT_WP_home, (sizeof(AT_WP_home)));
+	}
+	else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
+		transmitFromPGMSpace(AT_WP_submit, (sizeof(AT_WP_submit)));
+	}
+	printString("\r\n");
+}
+
+void ATClose(char *parameters[], uint8_t len) {
+	transmitFromPGMSpace(AT_cipclose, (sizeof(AT_cipclose)));
+	printString(parameters[0]);
+	printString("\r\n");
+	AT_currentMode = AT_CLOSING;
 }
 
 
