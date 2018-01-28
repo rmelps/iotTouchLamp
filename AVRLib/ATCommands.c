@@ -18,6 +18,7 @@ const char AT_port[] PROGMEM = "80";
 // Webpages
 const char AT_WP_home[] PROGMEM = "<h1>Welcome!</h1><h4>Please enter your network information to begin using your touch lamp!</h4><form action=\"/i\"><input type=\"text\" name=\"s\" placeholder=\"SSID\"><input type=\"text\" name=\"p\" placeholder=\"password\"><input type=\"submit\"></form>\r\n";
 const char AT_WP_submit[] PROGMEM = "<h1>Thank you!</h1><p>Please follow the instructions provided with your touchlamp to finish setup<p>";
+const char AT_WP_error[] PROGMEM = "<p>Error, please try again</p>";
 
 // AT commands
 
@@ -116,6 +117,9 @@ void ATSendResp(char *parameters[], uint8_t len) {
 	else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
 		printByte(sizeof(AT_WP_submit));
 	}
+	else {
+		printByte(sizeof(AT_WP_error));
+	}
 	printString("\r\n");
 	AT_currentMode = AT_SENDING;
 }
@@ -126,6 +130,12 @@ void ATSendData(char *parameters[], uint8_t len) {
 	}
 	else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
 		transmitFromPGMSpace(AT_WP_submit, (sizeof(AT_WP_submit)));
+	}
+	else if (parameters[1] == FAVICON_ROUTE) {
+		// Do nothing
+	}
+	else {
+		transmitFromPGMSpace(AT_WP_error, (sizeof(AT_WP_error)));
 	}
 	printString("\r\n");
 }

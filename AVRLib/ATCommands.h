@@ -22,6 +22,8 @@
 // --- Request Route Identifiers ---
 #define HOME_ROUTE				0
 #define NETWORK_CONFIG_ROUTE	'i'
+#define FAVICON_ROUTE			'f'
+#define ERROR_ROUTE				1
 
 
 uint8_t AT_currentMode;

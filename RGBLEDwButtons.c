@@ -2,8 +2,15 @@
 // ------------------------
 #include "RGBLEDwButtons.h"
 
-// ------ COMMANDS -------
+// ----- GLOBALS -----
+volatile uint8_t colorBalance[3];
+volatile char receiveBuffer[LAR_BUFFER_SIZE];
+volatile uint8_t iCommands, iReceiveBuffer;
+volatile uint8_t nextCommand = 1;
+volatile char ssid[SM_BUFFER_SIZE], pswd[SM_BUFFER_SIZE];
 volatile char linkID[] = "0";
+
+// ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
 
 struct commandStruct {
@@ -63,14 +70,6 @@ struct commandStruct commands[] = {
 		{"s", "p"}
 	}
 };
-
-// ----- GLOBALS -----
-volatile uint8_t colorBalance[3];
-volatile char receiveBuffer[LAR_BUFFER_SIZE];
-volatile uint8_t iCommands, iReceiveBuffer;
-volatile uint8_t nextCommand = 1;
-volatile char ssid[SM_BUFFER_SIZE], pswd[SM_BUFFER_SIZE];
-
 
 // ------ INTERRUPTS -------
 ISR (PCINT1_vect) {
@@ -168,6 +167,16 @@ ISR (USART_RX_vect) {
 						nextCommand++;
 					}
 					break;
+				case AT_WAITING:
+					// Received the end of the first line of the network connection string,
+					// which ends with a single return statement. If this is the FAVICON route, then
+					// we ignore it. Otherwise, we continue onto the next command.
+					if (compareString(receiveBuffer, "\r", 1)) {
+						if (!(commands[iCommands].parameters[1] == FAVICON_ROUTE)) {
+							nextCommand++;
+						}	
+					}
+					break;
 				default:
 					break;
 			}
@@ -191,17 +200,30 @@ ISR (USART_RX_vect) {
 			//Need to determine the route, and respond appropriately.
 			// Rudimentary implementation, but we will only check the character
 			// immediately proceeding the '/' character, to quickly determine route
+			// Will set parameter for the current command, which is sending the response
+			// and the parameter for the upcoming command, which is sending the actual data
 			if (receiveBuffer[1] == HOME_ROUTE) {
 				// present home screen
 				commands[iCommands].parameters[1] = HOME_ROUTE;
 				commands[iCommands + 1].parameters[1] = HOME_ROUTE;
-				printString("HOME!!!");
 			}
 			else if (receiveBuffer[1] == NETWORK_CONFIG_ROUTE) {
 				get_SSID_PSWD_fromPartialQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
 				// present "thank you" screen
 				commands[iCommands].parameters[1] = NETWORK_CONFIG_ROUTE;
 				commands[iCommands + 1].parameters[1] = NETWORK_CONFIG_ROUTE;
+			}
+			else if (receiveBuffer[1] == FAVICON_ROUTE) {
+				// Do not want to send a response, just forget about this
+				// will set the parameters anyway so that when we do receive the full network connection
+				// data set, we will know not to continue on to send the response/data.
+				commands[iCommands].parameters[1] = FAVICON_ROUTE;
+				commands[iCommands + 1].parameters[1] = FAVICON_ROUTE;
+			}
+			else {
+				// Handle Error
+				commands[iCommands].parameters[1] = ERROR_ROUTE;
+				commands[iCommands + 1].parameters[1] = ERROR_ROUTE;
 			}
 		}
 
@@ -285,10 +307,6 @@ int main(void) {
 	sei();
 
 	// ------ NETWORK SETUP ------
-	/*
-	char test[] = "testPSWD";
-	EEPROM_writePage(PSWD_SAVE_ADDRESS, sizeof(test), test);
-	*/
 
 	// 1. Retrieve saved SSID from EEPROM, if one exists
 	SSID_CONFIG = ssid;
@@ -305,11 +323,11 @@ int main(void) {
 		nextCommand = API_CONNECT_COMMAND_INDEX + 1;
 
 	}
+	// Wait for ESP8266 initialization to complete
+	_delay_ms(START_DELAY_TIME_MS);
+
 	// execute COMMANDS serially to setup WiFi connection
 	while (iCommands < ARRAY_LENGTH(commands)) {
-		// TODO: Execute commands here
-		//transmitByte(ssid[0]);
-		//transmitByte(pswd[0]);
 		commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
 		iCommands++;
 		while (iCommands == nextCommand) {

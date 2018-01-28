@@ -4,6 +4,7 @@
 #include <avr/interrupt.h>
 #include <avr/power.h>
 #include <avr/pgmspace.h>
+#include <util/delay.h>
 #include "rgbledPinDefines.h"
 #include "USART.h"
 #include "SPI.h"
@@ -36,6 +37,9 @@
 
 #define SM_BUFFER_SIZE				30
 #define LAR_BUFFER_SIZE				60
+
+// ESP8266 should take no longer than 0.2 ms to initialize and ready for command inputs
+#define START_DELAY_TIME_MS			200
 
 void clearBuffer(volatile char *array, uint8_t len);
 
