@@ -257,7 +257,7 @@ END GROUP
 .rela.plt
  *(.rela.plt)
 
-.text           0x00000000      0xb4c
+.text           0x00000000      0xb14
  *(.vectors)
  .vectors       0x00000000       0x68 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/../../../../avr/lib/avr5/crtm168.o
                 0x00000000                __vectors
@@ -398,77 +398,77 @@ END GROUP
                 0x000004de       0x86 RGBLEDwButtons.o
                 0x000004de                get_SSID_PSWD_fromPartialQueryString
  .text.__vector_18
-                0x00000564      0x26a RGBLEDwButtons.o
+                0x00000564      0x22e RGBLEDwButtons.o
                 0x00000564                __vector_18
  .text.transmitFromPGMSpace
-                0x000007ce       0x4a AVRLib/ATCommands.o
-                0x000007ce                transmitFromPGMSpace
+                0x00000792       0x4a AVRLib/ATCommands.o
+                0x00000792                transmitFromPGMSpace
  .text.ATsetCurrentWifiMode
-                0x00000818       0x2a AVRLib/ATCommands.o
-                0x00000818                ATsetCurrentWifiMode
+                0x000007dc       0x2a AVRLib/ATCommands.o
+                0x000007dc                ATsetCurrentWifiMode
  .text.ATconnectToAPI
-                0x00000842       0x40 AVRLib/ATCommands.o
-                0x00000842                ATconnectToAPI
+                0x00000806       0x40 AVRLib/ATCommands.o
+                0x00000806                ATconnectToAPI
  .text.ATsetMultipleConnections
-                0x00000882        0xa AVRLib/ATCommands.o
-                0x00000882                ATsetMultipleConnections
+                0x00000846        0xa AVRLib/ATCommands.o
+                0x00000846                ATsetMultipleConnections
  .text.ATsetupServer
-                0x0000088c       0x36 AVRLib/ATCommands.o
-                0x0000088c                ATsetupServer
- .text.ATReset  0x000008c2        0xa AVRLib/ATCommands.o
-                0x000008c2                ATReset
+                0x00000850       0x36 AVRLib/ATCommands.o
+                0x00000850                ATsetupServer
+ .text.ATReset  0x00000886        0xa AVRLib/ATCommands.o
+                0x00000886                ATReset
  .text.ATWaitForData
-                0x000008cc        0x8 AVRLib/ATCommands.o
-                0x000008cc                ATWaitForData
+                0x00000890        0x8 AVRLib/ATCommands.o
+                0x00000890                ATWaitForData
  .text.ATSendResp
-                0x000008d4       0x50 AVRLib/ATCommands.o
-                0x000008d4                ATSendResp
+                0x00000898       0x52 AVRLib/ATCommands.o
+                0x00000898                ATSendResp
  .text.ATSendData
-                0x00000924       0x38 AVRLib/ATCommands.o
-                0x00000924                ATSendData
- .text.ATClose  0x0000095c       0x2c AVRLib/ATCommands.o
-                0x0000095c                ATClose
+                0x000008ea       0x3a AVRLib/ATCommands.o
+                0x000008ea                ATSendData
+ .text.ATClose  0x00000924       0x2c AVRLib/ATCommands.o
+                0x00000924                ATClose
  .text.initSPI_Master
-                0x00000988       0x14 AVRLib/SPI.o
-                0x00000988                initSPI_Master
+                0x00000950       0x14 AVRLib/SPI.o
+                0x00000950                initSPI_Master
  .text.SPI_tradeByte
-                0x0000099c        0xa AVRLib/SPI.o
-                0x0000099c                SPI_tradeByte
+                0x00000964        0xa AVRLib/SPI.o
+                0x00000964                SPI_tradeByte
  .text.EEPROM_readStatus
-                0x000009a6       0x14 AVRLib/SPI.o
-                0x000009a6                EEPROM_readStatus
+                0x0000096e       0x14 AVRLib/SPI.o
+                0x0000096e                EEPROM_readStatus
  .text.EEPROM_sendAddress
-                0x000009ba       0x12 AVRLib/SPI.o
-                0x000009ba                EEPROM_sendAddress
+                0x00000982       0x12 AVRLib/SPI.o
+                0x00000982                EEPROM_sendAddress
  .text.EEPROM_readPage
-                0x000009cc       0x6a AVRLib/SPI.o
-                0x000009cc                EEPROM_readPage
+                0x00000994       0x6a AVRLib/SPI.o
+                0x00000994                EEPROM_readPage
  .text.EEPROM_writeEnable
-                0x00000a36        0xc AVRLib/SPI.o
-                0x00000a36                EEPROM_writeEnable
+                0x000009fe        0xc AVRLib/SPI.o
+                0x000009fe                EEPROM_writeEnable
  .text.EEPROM_writePage
-                0x00000a42       0x66 AVRLib/SPI.o
-                0x00000a42                EEPROM_writePage
+                0x00000a0a       0x66 AVRLib/SPI.o
+                0x00000a0a                EEPROM_writePage
  .text.initUSART
-                0x00000aa8       0x22 AVRLib/USART.o
-                0x00000aa8                initUSART
+                0x00000a70       0x22 AVRLib/USART.o
+                0x00000a70                initUSART
  .text.transmitByte
-                0x00000aca        0xe AVRLib/USART.o
-                0x00000aca                transmitByte
+                0x00000a92        0xe AVRLib/USART.o
+                0x00000a92                transmitByte
  .text.printString
-                0x00000ad8       0x26 AVRLib/USART.o
-                0x00000ad8                printString
+                0x00000aa0       0x26 AVRLib/USART.o
+                0x00000aa0                printString
  .text.printByte
-                0x00000afe       0x32 AVRLib/USART.o
-                0x00000afe                printByte
+                0x00000ac6       0x32 AVRLib/USART.o
+                0x00000ac6                printByte
  .text.libgcc.div
-                0x00000b30       0x18 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
-                0x00000b30                __udivmodqi4
-                0x00000b48                . = ALIGN (0x2)
+                0x00000af8       0x18 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
+                0x00000af8                __udivmodqi4
+                0x00000b10                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x00000b48        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
-                0x00000b48                exit
-                0x00000b48                _exit
+ .fini9         0x00000b10        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+                0x00000b10                exit
+                0x00000b10                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -487,11 +487,11 @@ END GROUP
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x00000b48        0x4 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+ .fini0         0x00000b10        0x4 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
  *(.fini0)
-                0x00000b4c                _etext = .
+                0x00000b14                _etext = .
 
-.data           0x00800100       0x8a load address 0x00000b4c
+.data           0x00800100       0x8c load address 0x00000b14
                 0x00800100                PROVIDE (__data_start, .)
  *(.data)
  .data          0x00800100        0x0 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/../../../../avr/lib/avr5/crtm168.o
@@ -516,40 +516,40 @@ END GROUP
  *(.rodata)
  *(.rodata*)
  .rodata.str1.1
-                0x0080014b       0x3c RGBLEDwButtons.o
-                                 0x43 (size before relaxing)
+                0x0080014b       0x3e RGBLEDwButtons.o
+                                 0x45 (size before relaxing)
  .rodata.str1.1
-                0x00800187        0x2 AVRLib/ATCommands.o
+                0x00800189        0x2 AVRLib/ATCommands.o
                                   0x5 (size before relaxing)
  *(.gnu.linkonce.d*)
-                0x0080018a                . = ALIGN (0x2)
- *fill*         0x00800189        0x1 
-                0x0080018a                _edata = .
-                0x0080018a                PROVIDE (__data_end, .)
+                0x0080018c                . = ALIGN (0x2)
+ *fill*         0x0080018b        0x1 
+                0x0080018c                _edata = .
+                0x0080018c                PROVIDE (__data_end, .)
 
-.bss            0x0080018a       0x7e
-                0x0080018a                PROVIDE (__bss_start, .)
+.bss            0x0080018c       0x7e
+                0x0080018c                PROVIDE (__bss_start, .)
  *(.bss)
  *(.bss*)
  *(COMMON)
- COMMON         0x0080018a       0x7e RGBLEDwButtons.o
-                0x0080018a                ssid
-                0x008001a8                iReceiveBuffer
-                0x008001a9                iCommands
-                0x008001aa                pswd
-                0x008001c8                colorBalance
-                0x008001cb                AT_currentMode
-                0x008001cc                receiveBuffer
-                0x00800208                PROVIDE (__bss_end, .)
-                0x00000b4c                __data_load_start = LOADADDR (.data)
-                0x00000bd6                __data_load_end = (__data_load_start + SIZEOF (.data))
+ COMMON         0x0080018c       0x7e RGBLEDwButtons.o
+                0x0080018c                ssid
+                0x008001aa                iReceiveBuffer
+                0x008001ab                iCommands
+                0x008001ac                pswd
+                0x008001ca                colorBalance
+                0x008001cd                AT_currentMode
+                0x008001ce                receiveBuffer
+                0x0080020a                PROVIDE (__bss_end, .)
+                0x00000b14                __data_load_start = LOADADDR (.data)
+                0x00000ba0                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x00800208        0x0
-                0x00800208                PROVIDE (__noinit_start, .)
+.noinit         0x0080020a        0x0
+                0x0080020a                PROVIDE (__noinit_start, .)
  *(.noinit*)
-                0x00800208                PROVIDE (__noinit_end, .)
-                0x00800208                _end = .
-                0x00800208                PROVIDE (__heap_start, .)
+                0x0080020a                PROVIDE (__noinit_end, .)
+                0x0080020a                _end = .
+                0x0080020a                PROVIDE (__heap_start, .)
 
 .eeprom         0x00810000        0x0
  *(.eeprom*)
@@ -657,17 +657,17 @@ END GROUP
  .debug_abbrev  0x0000075c       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
  .debug_abbrev  0x00000770       0x14 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
 
-.debug_line     0x00000000      0x869
+.debug_line     0x00000000      0x870
  *(.debug_line)
- .debug_line    0x00000000      0x253 RGBLEDwButtons.o
- .debug_line    0x00000253      0x170 AVRLib/ATCommands.o
- .debug_line    0x000003c3      0x13f AVRLib/SPI.o
- .debug_line    0x00000502      0x184 AVRLib/USART.o
- .debug_line    0x00000686       0x62 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
- .debug_line    0x000006e8       0x6a /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
- .debug_line    0x00000752       0x58 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
- .debug_line    0x000007aa       0x61 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
- .debug_line    0x0000080b       0x5e /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
+ .debug_line    0x00000000      0x25a RGBLEDwButtons.o
+ .debug_line    0x0000025a      0x170 AVRLib/ATCommands.o
+ .debug_line    0x000003ca      0x13f AVRLib/SPI.o
+ .debug_line    0x00000509      0x184 AVRLib/USART.o
+ .debug_line    0x0000068d       0x62 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodqi4.o)
+ .debug_line    0x000006ef       0x6a /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_udivmodhi4.o)
+ .debug_line    0x00000759       0x58 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_exit.o)
+ .debug_line    0x000007b1       0x61 /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_copy_data.o)
+ .debug_line    0x00000812       0x5e /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/avr5/libgcc.a(_clear_bss.o)
 
 .debug_frame    0x00000000      0x4ec
  *(.debug_frame)

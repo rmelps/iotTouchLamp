@@ -20,10 +20,11 @@
 #define LINK_ID_LOC				5
 
 // --- Request Route Identifiers ---
-#define HOME_ROUTE				0
+#define HOME_ROUTE				'h'
 #define NETWORK_CONFIG_ROUTE	'i'
 #define FAVICON_ROUTE			'f'
-#define ERROR_ROUTE				1
+#define ERROR_ROUTE				'e'
+#define ROUTE_CLEARED			"x"
 
 
 uint8_t AT_currentMode;

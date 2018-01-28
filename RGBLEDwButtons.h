@@ -23,13 +23,18 @@
 #define B_BUTTON_DOWN				(BUTTON_PIN & (1 << BBUTTON)) == 0
 
 // Connect to API parameters/execution
+// Found in the "commands" struct...ensure that these are up to date at compile time
+// ---------------------
 #define API_CONNECT_COMMAND_INDEX	11
 #define API_RESPONSE_COMMAND_INDEX	4
+#define API_DATA_COMMAND_INDEX		5
 #define API_WAITING_COMMAND_INDEX	3
 #define API_CLOSE_COMMAND_INDEX		6
-
+// ---------------------
 #define API_CONNECT_COMMAND			commands[API_CONNECT_COMMAND_INDEX]
 #define API_RESPONSE_LINK_ID		commands[API_RESPONSE_COMMAND_INDEX].parameters[0]
+#define API_RESPONSE_ROUTE			commands[API_RESPONSE_COMMAND_INDEX].parameters[1]
+#define API_DATA_ROUTE				commands[API_DATA_COMMAND_INDEX].parameters[1]
 #define API_CLOSE_LINK_ID			commands[API_CLOSE_COMMAND_INDEX].parameters[0]
 #define SSID_CONFIG					API_CONNECT_COMMAND.parameters[0]
 #define PSWD_CONFIG					API_CONNECT_COMMAND.parameters[1]

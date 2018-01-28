@@ -39,11 +39,11 @@ struct commandStruct commands[] = {
 	},
 	{
 		&ATSendResp,
-		{""}
+		{"",ROUTE_CLEARED}
 	},
 	{
 		&ATSendData,
-		{""}
+		{"", ROUTE_CLEARED}
 	},
 	{
 		&ATClose,
@@ -165,6 +165,9 @@ ISR (USART_RX_vect) {
 					// Received a SEND OK command, can close transmission (next command)
 					if (compareString(receiveBuffer, "SEND OK\r", 8)){
 						nextCommand++;
+						// clear the SEND parameters
+						API_DATA_ROUTE = ROUTE_CLEARED;
+						API_RESPONSE_ROUTE = ROUTE_CLEARED;
 					}
 					break;
 				case AT_WAITING:
@@ -172,7 +175,7 @@ ISR (USART_RX_vect) {
 					// which ends with a single return statement. If this is the FAVICON route, then
 					// we ignore it. Otherwise, we continue onto the next command.
 					if (compareString(receiveBuffer, "\r", 1)) {
-						if (!(commands[iCommands].parameters[1] == FAVICON_ROUTE)) {
+						if ((API_RESPONSE_ROUTE != FAVICON_ROUTE) && (API_RESPONSE_ROUTE != ROUTE_CLEARED)) {
 							nextCommand++;
 						}	
 					}
@@ -202,28 +205,28 @@ ISR (USART_RX_vect) {
 			// immediately proceeding the '/' character, to quickly determine route
 			// Will set parameter for the current command, which is sending the response
 			// and the parameter for the upcoming command, which is sending the actual data
-			if (receiveBuffer[1] == HOME_ROUTE) {
+			if (receiveBuffer[1] == 0) {
 				// present home screen
-				commands[iCommands].parameters[1] = HOME_ROUTE;
-				commands[iCommands + 1].parameters[1] = HOME_ROUTE;
+				API_RESPONSE_ROUTE = HOME_ROUTE;
+				API_DATA_ROUTE = HOME_ROUTE;
 			}
 			else if (receiveBuffer[1] == NETWORK_CONFIG_ROUTE) {
 				get_SSID_PSWD_fromPartialQueryString(receiveBuffer, ssid, pswd, ARRAY_LENGTH(receiveBuffer));
 				// present "thank you" screen
-				commands[iCommands].parameters[1] = NETWORK_CONFIG_ROUTE;
-				commands[iCommands + 1].parameters[1] = NETWORK_CONFIG_ROUTE;
+				API_RESPONSE_ROUTE = NETWORK_CONFIG_ROUTE;
+				API_DATA_ROUTE = NETWORK_CONFIG_ROUTE;
 			}
 			else if (receiveBuffer[1] == FAVICON_ROUTE) {
 				// Do not want to send a response, just forget about this
 				// will set the parameters anyway so that when we do receive the full network connection
 				// data set, we will know not to continue on to send the response/data.
-				commands[iCommands].parameters[1] = FAVICON_ROUTE;
-				commands[iCommands + 1].parameters[1] = FAVICON_ROUTE;
+				API_RESPONSE_ROUTE = FAVICON_ROUTE;
+				API_DATA_ROUTE = FAVICON_ROUTE;
 			}
 			else {
 				// Handle Error
-				commands[iCommands].parameters[1] = ERROR_ROUTE;
-				commands[iCommands + 1].parameters[1] = ERROR_ROUTE;
+				API_RESPONSE_ROUTE = ERROR_ROUTE;
+				API_DATA_ROUTE = ERROR_ROUTE;
 			}
 		}
 
