@@ -106,8 +106,7 @@ ISR (TIMER1_COMPA_vect) {
 
 	// Write the current configuration to EEPROM
 	EEPROM_writePage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
-	printString("Written... \r\n");
-
+	
 	// Disable interrupts on Timer 1
 	TIMSK1 &= ~(1 << OCIE1A);
 }
@@ -123,8 +122,9 @@ ISR (USART_RX_vect) {
 		if (compareString(receiveBuffer, "OK\r", 3)){
 
 			switch (AT_currentMode) {
+				case AT_WAITING:
 				case AT_SENDING:
-					// do nothing if sending, waiting for '<' char
+					// do nothing if sending or waiting, waiting for '<' char
 					break;
 				case AT_CLOSING:
 					// check to see if we have an ssid, if we do, continue.
@@ -287,10 +287,14 @@ static inline void initTimers(void) {
 }
 
 static inline void initButtonInterrupts(void) {
+	cli();
 	// Enable interrupts on pin change interrupt vector 1
 	PCICR |= (1 << PCIE1);
 	// Enable interrupts specifically on the BUTTON pins
 	PCMSK1 |= (1 << PCINT11) | (1 << PCINT10) | (1 << PCINT9);
+	// Clear any flags on PCINT1
+	PCIFR |= (1 << PCIF1);
+	sei();
 
 }
 
@@ -337,6 +341,11 @@ int main(void) {
 			// Wait until nextCommand is ready to be executed
 		}
 	}
+	// When commands have been exhausted, we should save new SSID/password to EEPROM
+	// TODO: Only do this when passwords have changed
+	EEPROM_writePage(SSID_SAVE_ADDRESS, sizeof(ssid), ssid);
+	EEPROM_writePage(PSWD_SAVE_ADDRESS, sizeof(pswd), pswd);
+
 	// ------ LED SETUP -------
 
 	// Set LED data direction to output on connected LEDs
@@ -348,16 +357,15 @@ int main(void) {
 	// Enable pullup resistors on BUTTON_PIN
 	BUTTON_PORT |= (1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON);
 
-	// ----- INTERRUPT INIT ------
-	initButtonInterrupts();
-
-	// ------ EVENT LOOP -------
-
 	// Initialize lamp color
 	OCR0A = colorBalance[0];
 	OCR0B = colorBalance[1];
 	OCR2B = colorBalance[2];
 
+	// ----- INTERRUPT INIT ------
+	initButtonInterrupts();
+
+	// ------ EVENT LOOP -------
 	while(1) {
 	// Can do anything here that needs to be looped
 	// CPU is currently freed up while waiting for interrupts

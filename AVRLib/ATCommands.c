@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
+#include <util/delay.h>
 #include "USART.h"
 #include "ATCommands.h"
 
@@ -90,13 +91,17 @@ void ATsetMultipleConnections(char *parameters[], uint8_t len) {
 void ATsetupServer(char *parameters[], uint8_t len) {
 	transmitFromPGMSpace(AT_cipserver, (sizeof(AT_cipserver)));
 	printString(parameters[0]);
-	printString(",");
-	transmitFromPGMSpace(AT_port, (sizeof(AT_port)));
+	if (parameters[0] != "0") {
+		printString(",");
+		transmitFromPGMSpace(AT_port, (sizeof(AT_port)));
+	}
 	printString("\r\n");
 }
 
 void ATReset(char *parameters[], uint8_t len) {
 	transmitFromPGMSpace(AT_rst, (sizeof(AT_rst)));
+	_delay_ms(500);
+
 }
 
 void ATWaitForData(char *parameters[], uint8_t len) {
