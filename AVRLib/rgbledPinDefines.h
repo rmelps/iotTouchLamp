@@ -4,21 +4,24 @@
 
 // General pins controlling balance of RGB of LEDs
 
-#define RLED 						PD6
+#define RLED 						PD5
 #define GLED 						PD3
-#define BLED						PD5
+#define BLED						PD6
 
 #define LED_PORT					PORTD
 #define LED_PIN                 	PIND
 #define LED_DDR                 	DDRD
 
-#define RBUTTON						PC3
-#define GBUTTON						PC2
-#define BBUTTON						PC1
+#define RBUTTON						PC2
+#define GBUTTON						PC1
+#define BBUTTON						PC3
 
 #define BUTTON_PORT					PORTC
 #define BUTTON_PIN					PINC
 #define BUTTON_DDR					DDRC
+
+#define STATUS_LED					PB1
+#define ERROR_LED					PC0
 
 // SPI port defines
 

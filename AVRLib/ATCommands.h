@@ -13,6 +13,9 @@
 #define AT_SENDING				2
 #define AT_CONNECTING			3
 #define AT_CLOSING				4
+#define AT_POLL_START			5
+#define AT_INTERRUPTED			6
+#define AT_READY				7
 
 // --- Network Responses ---
 #define PSWD_Q_STRING			'p'
@@ -24,6 +27,8 @@
 #define NETWORK_CONFIG_ROUTE	'i'
 #define FAVICON_ROUTE			'f'
 #define ERROR_ROUTE				'e'
+#define TCP_GET_ROUTE			'g'
+#define TCP_POST_ROUTE			'p'
 #define ROUTE_CLEARED			"x"
 
 

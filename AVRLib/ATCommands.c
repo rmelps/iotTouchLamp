@@ -4,16 +4,26 @@
 #include "USART.h"
 #include "ATCommands.h"
 
+const uint16_t sn = 1;
+
 // General Separators
 const char AT_separator[] PROGMEM = "\",\"";
 const char AT_terminator[] PROGMEM = "\"\r\n";
 
 // TCP request parameters
-const char AT_hostAddress[] PROGMEM = "us-central1-radio-free-america.cloudfunctions.net";
-const char AT_functionAddress[] PROGMEM = "/testFn";
-const char AT_requestType[] PROGMEM = "POST";
-const char AT_HTTPver[] PROGMEM = "HTTP/1.0\r\n";
-const char AT_TCPHostText[] PROGMEM = "Host:";
+const char AT_getColor[] PROGMEM = "/getColor?s=";
+
+const char AT_setColor[] PROGMEM = "/setColor?s=";
+const char AT_setRed[] PROGMEM = "&r=";
+const char AT_setGreen[] PROGMEM = "&g=";
+const char AT_setBlue[] PROGMEM = "&b=";
+
+const char AT_requestTypePost[] PROGMEM = "POST ";
+const char AT_requestTypeGet[] PROGMEM = "GET ";
+const char AT_HTTPver[] PROGMEM = " HTTP/1.0\r\n";
+const char AT_TCPHostText[] PROGMEM = "Host: us-central1-iotlamp-rm.cloudfunctions.net\r\n";
+const char AT_TCPContentLength[] PROGMEM = "Content-Length: 0\r\n";
+
 const char AT_port[] PROGMEM = "80";
 
 // Webpages
@@ -44,7 +54,7 @@ const char AT_cipserver[] PROGMEM = "AT+CIPSERVER=";
 const char AT_rst[] PROGMEM = "AT+RST\r\n";
 
 // Start TCP connection with server
-const char AT_cipstart[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
+const char AT_cipstart[] PROGMEM = "AT+CIPSTART=\"TCP\",\"https://us-central1-iotlamp-rm.cloudfunctions.net\",80\r\n";
 
 // Close transmission
 const char AT_cipclose[] PROGMEM = "AT+CIPCLOSE=";
@@ -109,39 +119,94 @@ void ATWaitForData(char *parameters[], uint8_t len) {
 }
 
 void ATTCPStart(char *parameters[], uint8_t len) {
-
+	transmitFromPGMSpace(AT_cipstart, (sizeof(AT_cipstart)));
+	AT_currentMode = AT_POLL_START;
 }
 
 void ATSendResp(char *parameters[], uint8_t len) {
 	transmitFromPGMSpace(AT_cipsend, (sizeof(AT_cipsend)));
-	printString(parameters[0]);
-	printString(",");
-	if (parameters[1] == HOME_ROUTE) {
-		printByte(sizeof(AT_WP_home));
+	if (parameters[1] == TCP_GET_ROUTE) {
+		// The Numbers at the end acounts for the size of the serial number and the return/new line at the end
+		uint8_t size = sizeof(AT_requestTypeGet) + sizeof(AT_getColor) + sizeof(AT_HTTPver)
+				+ sizeof(AT_TCPHostText) + sizeof(AT_TCPContentLength) + 2;
+		printByte(size);
 	}
-	else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
-		printByte(sizeof(AT_WP_submit));
+	else if (parameters[1] == TCP_POST_ROUTE) {
+		// The Numbers at the end acounts for the size of the serial number, the return/new line at the end
+		// and the 3 colors (3 chars each)
+		uint8_t size = sizeof(AT_requestTypePost) + sizeof(AT_setColor) + sizeof(AT_HTTPver)
+				+ sizeof(AT_TCPHostText) + sizeof(AT_TCPContentLength) + sizeof(AT_setRed) + sizeof(AT_setGreen)
+				+ sizeof(AT_setBlue) + 9;
+		printByte(size);
 	}
 	else {
-		printByte(sizeof(AT_WP_error));
+		// In this case parameters[0] will be the connection number, parameters 1 will be the
+		// length of the data to send
+		printString(parameters[0]);
+		printString(",");
+		if (parameters[1] == HOME_ROUTE) {
+			printByte(sizeof(AT_WP_home));
+		}
+		else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
+			printByte(sizeof(AT_WP_submit));
+		}
+		else {
+			printByte(sizeof(AT_WP_error));
+		}
 	}
 	printString("\r\n");
 	AT_currentMode = AT_SENDING;
 }
 
 void ATSendData(char *parameters[], uint8_t len) {
-	if (parameters[1] == HOME_ROUTE) {
-		transmitFromPGMSpace(AT_WP_home, (sizeof(AT_WP_home)));
+
+	if (parameters[1] == TCP_GET_ROUTE) {
+		//TODO: Send HTTP request info for getColor
+		transmitFromPGMSpace(AT_requestTypeGet, (sizeof(AT_requestTypeGet)));
+		transmitFromPGMSpace(AT_getColor, (sizeof(AT_getColor)));
+		printString("00");
+		printByte(sn);
+		transmitFromPGMSpace(AT_HTTPver, (sizeof(AT_HTTPver)));
+		transmitFromPGMSpace(AT_TCPHostText, (sizeof(AT_TCPHostText)));
+		transmitFromPGMSpace(AT_TCPContentLength, (sizeof(AT_TCPContentLength)));
+		printString("\r\n");
+
 	}
-	else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
-		transmitFromPGMSpace(AT_WP_submit, (sizeof(AT_WP_submit)));
-	}
-	else if (parameters[1] == FAVICON_ROUTE) {
-		// Do nothing
+	else if (parameters[1] == TCP_POST_ROUTE) {
+		//TODO: Send HTTP request info for setColor
+		transmitFromPGMSpace(AT_requestTypePost, (sizeof(AT_requestTypePost)));
+		transmitFromPGMSpace(AT_setColor, (sizeof(AT_setColor)));
+		printString("00");
+		printByte(sn);
+
+		transmitFromPGMSpace(AT_setRed, (sizeof(AT_setRed)));
+		printByte(*(parameters[0]));
+
+		transmitFromPGMSpace(AT_setGreen, (sizeof(AT_setGreen)));
+		printByte(*(parameters[0] + 1));
+
+		transmitFromPGMSpace(AT_setBlue, (sizeof(AT_setBlue)));
+		printByte(*(parameters[0] + 2));
+
+		transmitFromPGMSpace(AT_HTTPver, (sizeof(AT_HTTPver)));
+		transmitFromPGMSpace(AT_TCPHostText, (sizeof(AT_TCPHostText)));
+		transmitFromPGMSpace(AT_TCPContentLength, (sizeof(AT_TCPContentLength)));
+		printString("\r\n");
 	}
 	else {
-		transmitFromPGMSpace(AT_WP_error, (sizeof(AT_WP_error)));
-	}
+		if (parameters[1] == HOME_ROUTE) {
+			transmitFromPGMSpace(AT_WP_home, (sizeof(AT_WP_home)));
+		}
+		else if (parameters[1] == NETWORK_CONFIG_ROUTE) {
+			transmitFromPGMSpace(AT_WP_submit, (sizeof(AT_WP_submit)));
+		}
+		else if (parameters[1] == FAVICON_ROUTE) {
+			// Do nothing
+		}
+		else {
+			transmitFromPGMSpace(AT_WP_error, (sizeof(AT_WP_error)));
+		}
+	}	
 	printString("\r\n");
 }
 
