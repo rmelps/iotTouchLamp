@@ -18,6 +18,8 @@
 #define SSID_SAVE_ADDRESS				EEPROM_PAGE_SIZE * 1
 #define PSWD_SAVE_ADDRESS				EEPROM_PAGE_SIZE * 2
 
+#define CHAR_TO_UINT_OFFSET				48
+
 #define ARRAY_LENGTH(A)				sizeof(A)/sizeof(A[0])
 
 #define R_BUTTON_DOWN				(BUTTON_PIN & (1 << RBUTTON)) == 0
@@ -37,11 +39,11 @@
 #define TCP_RESPONSE_COMMAND_INDEX	1
 #define TCP_DATA_COMMAND_INDEX		2
 // ---------------------
-#define API_CONNECT_COMMAND			commands[API_CONNECT_COMMAND_INDEX]
-#define API_RESPONSE_LINK_ID		commands[API_RESPONSE_COMMAND_INDEX].parameters[0]
-#define API_RESPONSE_ROUTE			commands[API_RESPONSE_COMMAND_INDEX].parameters[1]
-#define API_DATA_ROUTE				commands[API_DATA_COMMAND_INDEX].parameters[1]
-#define API_CLOSE_LINK_ID			commands[API_CLOSE_COMMAND_INDEX].parameters[0]
+#define API_CONNECT_COMMAND			initCommands[API_CONNECT_COMMAND_INDEX]
+#define API_RESPONSE_LINK_ID		initCommands[API_RESPONSE_COMMAND_INDEX].parameters[0]
+#define API_RESPONSE_ROUTE			initCommands[API_RESPONSE_COMMAND_INDEX].parameters[1]
+#define API_DATA_ROUTE				initCommands[API_DATA_COMMAND_INDEX].parameters[1]
+#define API_CLOSE_LINK_ID			initCommands[API_CLOSE_COMMAND_INDEX].parameters[0]
 #define SSID_CONFIG					API_CONNECT_COMMAND.parameters[0]
 #define PSWD_CONFIG					API_CONNECT_COMMAND.parameters[1]
 #define API_CONNECT_EXECUTE			API_CONNECT_COMMAND.execute(API_CONNECT_COMMAND.parameters, sizeof(API_CONNECT_COMMAND.parameters));
@@ -65,3 +67,6 @@ void clearBuffer(volatile char *array, uint8_t len);
 uint8_t compareString(volatile char *array, const char compStr[], uint8_t len);
 
 void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *assignSSID, volatile char *assignPSWD, uint8_t len);
+
+uint8_t strToUInt8(volatile char *letter, uint8_t len);
+

@@ -9,6 +9,7 @@ volatile uint8_t iCommands, iReceiveBuffer, errorCount;
 volatile uint8_t nextCommand = 1;
 volatile char ssid[SM_BUFFER_SIZE], pswd[SM_BUFFER_SIZE];
 volatile char linkID[] = "0";
+volatile char dataR[3], dataG[3], dataB[3];
 
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
@@ -20,7 +21,7 @@ struct commandStruct {
 
 // The AT commands to be executed, in order. iCommands keeps track of the current command being executed
 // These commands will be executed at startup
-struct commandStruct commands[] = {
+struct commandStruct initCommands[] = {
 	{
 		&ATsetCurrentWifiMode,
 		{"2"}
@@ -139,6 +140,7 @@ ISR (TIMER1_COMPA_vect) {
 	AT_currentMode = AT_READY;
 	TCP_START_ROUTE = TCP_POST_ROUTE;
 	// Pass the pointer to colorBalance as a parameter
+	//TODO: When color is updated, the color changes briefly to a totally different color before
 	
 	TCP_RESPONSE_PARAM = colorBalance;
 	TCP_DATA_PARAM = colorBalance;
@@ -154,7 +156,7 @@ ISR (TIMER1_COMPB_vect) {
 	// Disable interrupts on Timer 1 Comp B
 	TIMSK1 &= ~(1 << OCIE1B);
 
-	// Time for new TCP request, start from top of commands
+	// Time for new TCP request, start from top of initCommands
 	AT_currentMode = AT_READY;
 	TCP_START_ROUTE = TCP_GET_ROUTE;
 	iCommands = 0;
@@ -234,26 +236,47 @@ ISR (USART_RX_vect) {
 					// Received the end of the first line of the network connection string,
 					// which ends with a single return statement. If this is the FAVICON route, then
 					// we ignore it. Otherwise, we continue onto the next command.
-					if (compareString(receiveBuffer, "\r", 1)) {
+					if (compareString(receiveBuffer, "ERROR\r", 6)) {
+						nextCommand++;
+					}
+
+					else if (compareString(receiveBuffer, "\r", 1)) {
 						if ((API_RESPONSE_ROUTE != FAVICON_ROUTE) && (API_RESPONSE_ROUTE != ROUTE_CLEARED)) {
 							nextCommand++;
-						}	
+						}
+
 					}
 					else if (compareString(receiveBuffer, "r ", 2)) {
-						//printString("assignR");
+						for (uint8_t i = 0; i < ARRAY_LENGTH(dataR); i++) {
+							*(dataR + i) = *(receiveBuffer + 2 + i);
+						}
 					}
 					else if (compareString(receiveBuffer, "g ", 2)) {
-						//printString("assignG");
+						for (uint8_t i = 0; i < ARRAY_LENGTH(dataG); i++) {
+							*(dataG + i) = *(receiveBuffer + 2 + i);
+						}
 					}
 					else if (compareString(receiveBuffer, "b ", 2)) {
-						//printString("assignB");
+						for (uint8_t i = 0; i < ARRAY_LENGTH(dataB); i++) {
+							*(dataB + i) = *(receiveBuffer + 2 + i);
+						}
+						
 					}
 					else if (compareString(receiveBuffer, "CLOSED", 6)) {
+						//printString(receiveBuffer);
 						TCNT1 = 0;
 						// Clear flags on compare match A/B
 						TIFR1 |= (1 << OCF1A) | (1 << OCF1B);
 						// Enable interrupts on Compare match B, to determine when we should make our next request.
 						TIMSK1 |= (1 << OCIE1B);
+
+						//Assign colors
+						if (TCP_START_ROUTE == TCP_GET_ROUTE) {
+							*colorBalance = strToUInt8(dataR, 3);
+							*(colorBalance + 1) = strToUInt8(dataG, 3);
+							*(colorBalance + 2) = strToUInt8(dataB, 3);
+						}
+						
 					}
 					break;
 				default:
@@ -392,7 +415,7 @@ int main(void) {
 	BUTTON_PORT |= (1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON);
 
 	// ----- EEPROM CHECK -----
-	EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
+	//EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
 
 	// ----- AT COMMANDS -----
 
@@ -427,13 +450,13 @@ int main(void) {
 	_delay_ms(START_DELAY_TIME_MS);
 
 	// execute COMMANDS serially to setup WiFi connection
-	while (iCommands < ARRAY_LENGTH(commands)) {
+	while (iCommands < ARRAY_LENGTH(initCommands)) {
 		if (iCommands == API_CONNECT_COMMAND_INDEX) {
 			// Begin toggling the STATUS LED to indicate that the lamp is attempting to
 			// connect to the network.
 			TCCR1A |= (1 << COM1A0);
 		}
-		commands[iCommands].execute(commands[iCommands].parameters, sizeof(commands[iCommands].parameters));
+		initCommands[iCommands].execute(initCommands[iCommands].parameters, sizeof(initCommands[iCommands].parameters));
 		iCommands++;
 		while (iCommands == nextCommand) {
 			// Wait until nextCommand is ready to be executed
@@ -464,10 +487,6 @@ int main(void) {
 	OCR1A = COLOR_SAVE_DELAY_COUNT;
 	OCR1B = TCP_POLL_DELAY_COUNT;
 
-	// Initialize lamp color
-	OCR0B = colorBalance[0];
-	OCR2B = colorBalance[1];
-	OCR0A = colorBalance[2];
 
 	// ----- INTERRUPT INIT ------
 	initButtonInterrupts();
@@ -480,11 +499,12 @@ int main(void) {
 			// if there is a command queued to be performed, perform it.
 			// The main loop will handle TCP requests.
 			if (iCommands < ARRAY_LENGTH(TCPReqCommands)) {
-				//printString("next \r\n");
 				TCPReqCommands[iCommands].execute(TCPReqCommands[iCommands].parameters, sizeof(TCPReqCommands[iCommands].parameters));
 				iCommands++;
 			}			
 		}
+		OCR0B = colorBalance[0];
+		OCR2B = colorBalance[1];	OCR0A = colorBalance[2];
 	}
 
 	// This line is never reached
@@ -538,6 +558,23 @@ void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *ass
 			i++;
 		}
 	}
+}
+
+uint8_t strToUInt8(volatile char *letter, uint8_t len) {
+	uint8_t result;
+
+	for (uint8_t i = 0; i < len; i++) {
+		uint8_t multiplier = 1;
+		for (uint8_t x = i+1; x < len; x++) {
+			multiplier *= 10;
+		}
+		//TODO: Figure out why the result is correct when printByte(multiplier) exists, but
+		// is wrong when it is omitted... (off by 2)
+		printByte(multiplier);
+		result +=((*(letter + i) - CHAR_TO_UINT_OFFSET)) * multiplier;
+	}
+	
+	return result;
 }
 
 
