@@ -129,7 +129,7 @@ ISR (TIMER1_COMPA_vect) {
 	//printString("Writing... \r\n");
 
 	// Write the current configuration to EEPROM
-	EEPROM_writePage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
+	//EEPROM_writePage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
 	
 	// Disable interrupts on Timer 1 Comp A/b
 	TIMSK1 &= ~((1 << OCIE1A) | (1 << OCIE1B));
@@ -474,11 +474,6 @@ int main(void) {
 	EEPROM_writePage(SSID_SAVE_ADDRESS, sizeof(ssid), ssid);
 	EEPROM_writePage(PSWD_SAVE_ADDRESS, sizeof(pswd), pswd);
 
-	// ------ LED SETUP -------
-
-	// Set LED data direction to output on connected LEDs
-	LED_DDR |= (1 << RLED) | (1 << GLED) | (1 << BLED);
-
 	// Disable Status LED Toggling
 	TCCR1A &= ~(1 << COM1A0);
 
@@ -490,6 +485,11 @@ int main(void) {
 
 	// ----- INTERRUPT INIT ------
 	initButtonInterrupts();
+
+	// ------ LED SETUP -------
+
+	// Set LED data direction to output on connected LEDs
+	LED_DDR |= (1 << RLED) | (1 << GLED) | (1 << BLED);
 
 	// ------ EVENT LOOP -------
 	while(1) {
@@ -504,7 +504,8 @@ int main(void) {
 			}			
 		}
 		OCR0B = colorBalance[0];
-		OCR2B = colorBalance[1];	OCR0A = colorBalance[2];
+		OCR2B = colorBalance[1];	
+		OCR0A = colorBalance[2];
 	}
 
 	// This line is never reached

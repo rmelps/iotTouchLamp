@@ -7064,6 +7064,12 @@ AT42QT1070 in standalone mode has 5 inputs (guard + 4 key) and open drain output
 </nets>
 </sheet>
 </sheets>
+<errors>
+<approved hash="202,1,78.74,7.62,IC3,!WP,,,,"/>
+<approved hash="202,1,-83.82,5.08,IC5,IN3,,,,"/>
+<approved hash="202,1,-83.82,2.54,IC5,IN4,,,,"/>
+<approved hash="202,1,-83.82,-2.54,IC5,!RST,,,,"/>
+</errors>
 </schematic>
 </drawing>
 <compatibility>
