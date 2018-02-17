@@ -23,6 +23,8 @@
 #define STATUS_LED					PB1
 #define ERROR_LED					PC0
 
+#define CHANGE_P					PC1
+
 // SPI port defines
 
 #define SPI_SS                     	PB2

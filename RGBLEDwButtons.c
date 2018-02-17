@@ -19,6 +19,9 @@ struct commandStruct {
 	char *parameters[2];
 };
 
+// ------ TWI (I2C) communication -----
+I2C_Trans currentOp;
+
 // The AT commands to be executed, in order. iCommands keeps track of the current command being executed
 // These commands will be executed at startup
 struct commandStruct initCommands[] = {
@@ -341,6 +344,59 @@ ISR (USART_RX_vect) {
 	}
 }
 
+ISR (TWI_vect) {
+	switch (TWSR_READ) {
+		case I2C_START_TRANSMITTED:
+			// Always Send SLA+W after initial Start transmission (our slave requires this)
+			// Clear the TWISTA bit in TWCR after a start transmission succeeds
+			break;
+		case I2C_START_REPEATED:
+			// If we are performing a repeated started, we must be switching to SLA+R.
+			// Send SLA+R
+			break;
+		case I2C_ARBITRATION_LOST:
+			// Just exit the workflow here
+			break;
+		case I2C_SLAR_SENT_ACK:
+			// All good, waiting for data to be received
+			break;
+		case I2C_SLAR_SENT_NACK:
+			// Experienced an error when addressing the slave, try again until timeout
+			break;
+		case I2C_R_DATA_ACK:
+			// We received some data and want to receive some more.
+			// Read the data in TWDR and keep going
+			break;
+		case I2C_R_DATA_NACK:
+			// We received some data and want to stop reading data
+			// Read the data in TWDR and exit the workflow (Set TWSTO on TWCR)
+			break;
+		case I2C_SLAW_SENT_ACK:
+			// Addressed a slave device for writing, now need to transmit the internal address
+			// within the slave device
+			break;
+		case I2C_SLAW_SENT_NACK:
+			break;
+		case I2C_W_DATA_ACK:
+			// Sent out some data, and got the okay from the slave.
+			// If our transmission is READ, send a repeated START
+			// If our transmission is WRITE, send some more data
+			// If we are WRITEing, and sent the internal address, clear the 
+			// address from the currentOp, and use this to keep track of our
+			// current position in the transmission cycle
+			// If we are READing, we must have sent the internal address.
+			// Can switch to READ mode by sending a Repeated Start
+			break;
+		case I2C_W_DATA_NACK:
+			// Sent out some data, but it failed. Exit workflow (Set TWSTO on TWCR)
+			break;
+		default:
+			break;
+	}
+
+	TWINT_CLEAR;
+}
+
 static inline void initTimers(void) {
 	// Set the clock prescale divider to 1, so running at 8 Mhz
 	clock_prescale_set(clock_div_1);
@@ -398,12 +454,18 @@ static inline void initButtonInterrupts(void) {
 
 }
 
+void initCapTouch(void) {
+
+
+}
+
 int main(void) {
 	// ------ INITS -------
 
 	initTimers();
 	initUSART();
 	initSPI_Master();
+	initI2C();
 
 	// Set OC1A for output, for yellow status LED
 	DDRB |= (1 << STATUS_LED);

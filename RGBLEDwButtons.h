@@ -9,6 +9,8 @@
 #include "USART.h"
 #include "SPI.h"
 #include "ATCommands.h"
+#include "I2C.h"
+#include "AT42.h"
 
 
 #define COLOR_SAVE_DELAY_COUNT			39063
