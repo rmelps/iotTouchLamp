@@ -24,7 +24,7 @@ static inline void i2cStopTransmission(void) {
 void i2cSlaveTransmit(*I2C_Trans t) {
 	// chip address is 7 bits, followed by R (1) or W (0) bit
 	TWDR = (*t.chipAddress << 1);
-	TWDR += currentOp.isReading;
+	TWDR += *t.isReading;
 	TWCR |= (1 << TWEN) | (1 << TWINT);
 }
 
