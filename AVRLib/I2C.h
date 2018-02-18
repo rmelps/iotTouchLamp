@@ -25,11 +25,13 @@
 #define TWINT_CLEAR					TWCR |= (1 << TWINT)
 
 // Specify Transmission Parameters
+// The maximum amount of data we will send at once is 3 bytes
 typedef struct {
 	uint8_t chipAddress;
 	uint8_t internalAddress;
 	uint8_t isReading;
-	uint8_t data;
+	uint8_t data[3];
+	uint8_t iData;
 } I2C_Trans;
 
 // ---- I2C Initialization
@@ -43,6 +45,8 @@ static inline void i2cStopTransmission(void);
 void i2cSlaveTransmit(I2C_Trans *t);
 
 void i2cDataTransmit(I2C_Trans *t);
+
+void i2cAddressTransmit(I2C_Trans *t);
 
 
 

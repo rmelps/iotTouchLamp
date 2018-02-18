@@ -11,6 +11,12 @@ volatile char ssid[SM_BUFFER_SIZE], pswd[SM_BUFFER_SIZE];
 volatile char linkID[] = "0";
 volatile char dataR[3], dataG[3], dataB[3];
 
+// ------ TWI (I2C) communication -----
+// This is the single variable that keeps track of the current I2C command
+I2C_Trans currentOp;
+
+I2C_Trans sla_w_Op = {.chipAddress = currentOp.chipAddress, .internalAddress = currentOp.chipAddress, .isReading = 0, .data = 0};
+
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
 
@@ -18,9 +24,6 @@ struct commandStruct {
 	const commandFuncs execute;
 	char *parameters[2];
 };
-
-// ------ TWI (I2C) communication -----
-I2C_Trans currentOp;
 
 // The AT commands to be executed, in order. iCommands keeps track of the current command being executed
 // These commands will be executed at startup
@@ -348,47 +351,92 @@ ISR (TWI_vect) {
 	switch (TWSR_READ) {
 		case I2C_START_TRANSMITTED:
 			// Always Send SLA+W after initial Start transmission (our slave requires this)
-			// Clear the TWISTA bit in TWCR after a start transmission succeeds
+			// Clear the TWSTA bit in TWCR after a start transmission succeeds
+			TWCR &= ~(1 << TWSTA);
+			i2cSlaveTransmit(&sla_w_Op);
 			break;
 		case I2C_START_REPEATED:
-			// If we are performing a repeated started, we must be switching to SLA+R.
+			// If we are performing a repeated started, we must be switching to SLA+R, which would have
+			// to be our desired function.
 			// Send SLA+R
+			i2cSlaveTransmit(&currentOp);
 			break;
 		case I2C_ARBITRATION_LOST:
-			// Just exit the workflow here
+			// Just exit the workflow here and clear currentOp
+			currentOp = {0};
+			i2cStopTransmission(void);
 			break;
 		case I2C_SLAR_SENT_ACK:
 			// All good, waiting for data to be received
+			// If we only want to read one data point, then configure TWI to send NACK otherwise ACK
+			if (!(currentOp.data[iData + 1])) {
+				TWCR &= ~(1 << TWEA);
+			}
 			break;
 		case I2C_SLAR_SENT_NACK:
-			// Experienced an error when addressing the slave, try again until timeout
+			// Experienced an error when addressing the slave, exit workflow
+			currentOp = {0};
+			i2cStopTransmission(void);
 			break;
 		case I2C_R_DATA_ACK:
 			// We received some data and want to receive some more.
 			// Read the data in TWDR and keep going
+			currentOp.data[iData] = TWDR;
+			currentOp.iData++;
+			if (!(currentOp.data[iData + 1])) {
+				TWCR &= ~(1 << TWEA);
+			}
 			break;
 		case I2C_R_DATA_NACK:
 			// We received some data and want to stop reading data
 			// Read the data in TWDR and exit the workflow (Set TWSTO on TWCR)
+			currentOp.data[iData] = TWDR;
+			if (currentOp.chipAddress == AT42_CHIP_ADDRESS) {
+				uint8_t *p = &currentOp.data;
+				colorBalance[0] = *p;
+				colorBalance[1] = *(p+1);
+				colorBalance[2] = *(p+2);
+			}
+			currentOp = {0};
+			i2cStopTransmission();
 			break;
 		case I2C_SLAW_SENT_ACK:
 			// Addressed a slave device for writing, now need to transmit the internal address
 			// within the slave device
+			i2cAddressTransmit(&currentOp);
 			break;
 		case I2C_SLAW_SENT_NACK:
+			// An error must have occurred, exit workflow.
+			currentOp = {0};
+			i2cStopTransmission(void);
 			break;
 		case I2C_W_DATA_ACK:
 			// Sent out some data, and got the okay from the slave.
 			// If our transmission is READ, send a repeated START
 			// If our transmission is WRITE, send some more data
-			// If we are WRITEing, and sent the internal address, clear the 
-			// address from the currentOp, and use this to keep track of our
+			// If we are WRITEing, we must have sent the internal address already, 
+			// increment iData keep track of the current byte to transmit
 			// current position in the transmission cycle
 			// If we are READing, we must have sent the internal address.
 			// Can switch to READ mode by sending a Repeated Start
+			if (currentOp.isReading) {
+				i2cStartTransmission();
+			} else {
+				if (iData < ARRAY_LENGTH(currentOp.data) && (!(currentOp.data[iData + 1]))) {
+					i2cDataTransmit(&currentOp);
+					iData++;
+				} else {
+					// If the index greater than the length of the data array, or we don't
+					// have any more data to send (indicatd by a 0 in the data array), we can exit.
+					currentOp = {0};
+					i2cStopTransmission(void);
+				}
+			}
 			break;
 		case I2C_W_DATA_NACK:
-			// Sent out some data, but it failed. Exit workflow (Set TWSTO on TWCR)
+			// Sent out some data, but it failed. Exit workflow and clear currentOp
+			currentOp = {0};
+			i2cStopTransmission(void);
 			break;
 		default:
 			break;
@@ -454,9 +502,23 @@ static inline void initButtonInterrupts(void) {
 
 }
 
-void initCapTouch(void) {
+void setupCapTouch(void) {
 
-
+	currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = AKS_0, .isReading = 0, .data = {AKS_VAL,AKS_VAL,AKS_VAL}};
+	i2cStartTransmission();
+	while (currentOp) {
+		// wait until I2C comm has completed
+	}
+	currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DI_0, .isReading = 0, .data = {DI_VAL,DI_VAL,DI_VAL}};
+	i2cStartTransmission();
+	while (currentOp) {
+		// wait until I2C comm has completed
+	}
+	currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = NEG_THRESH_0, .isReading = 0, .data = {NEG_THRESH_VAL,NEG_THRESH_VAL,NEG_THRESH_VAL}};
+	i2cStartTransmission();
+	while (currentOp) {
+		// wait until I2C comm has completed
+	}
 }
 
 int main(void) {
@@ -543,6 +605,9 @@ int main(void) {
 	// Update Timer 1 Compare Value B for TCP polling delay
 	OCR1A = COLOR_SAVE_DELAY_COUNT;
 	OCR1B = TCP_POLL_DELAY_COUNT;
+
+	// Setup Capacitive Touch sensor
+	setupCapTouch();
 
 
 	// ----- INTERRUPT INIT ------
