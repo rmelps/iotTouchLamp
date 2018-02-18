@@ -364,7 +364,7 @@ ISR (TWI_vect) {
 		case I2C_ARBITRATION_LOST:
 			// Just exit the workflow here and clear currentOp
 			currentOp = {0};
-			i2cStopTransmission(void);
+			i2cStopTransmission();
 			break;
 		case I2C_SLAR_SENT_ACK:
 			// All good, waiting for data to be received
@@ -376,7 +376,7 @@ ISR (TWI_vect) {
 		case I2C_SLAR_SENT_NACK:
 			// Experienced an error when addressing the slave, exit workflow
 			currentOp = {0};
-			i2cStopTransmission(void);
+			i2cStopTransmission();
 			break;
 		case I2C_R_DATA_ACK:
 			// We received some data and want to receive some more.
@@ -408,7 +408,7 @@ ISR (TWI_vect) {
 		case I2C_SLAW_SENT_NACK:
 			// An error must have occurred, exit workflow.
 			currentOp = {0};
-			i2cStopTransmission(void);
+			i2cStopTransmission();
 			break;
 		case I2C_W_DATA_ACK:
 			// Sent out some data, and got the okay from the slave.
@@ -429,14 +429,14 @@ ISR (TWI_vect) {
 					// If the index greater than the length of the data array, or we don't
 					// have any more data to send (indicatd by a 0 in the data array), we can exit.
 					currentOp = {0};
-					i2cStopTransmission(void);
+					i2cStopTransmission();
 				}
 			}
 			break;
 		case I2C_W_DATA_NACK:
 			// Sent out some data, but it failed. Exit workflow and clear currentOp
 			currentOp = {0};
-			i2cStopTransmission(void);
+			i2cStopTransmission();
 			break;
 		default:
 			break;
