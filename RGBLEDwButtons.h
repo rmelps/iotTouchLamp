@@ -74,3 +74,6 @@ void get_SSID_PSWD_fromPartialQueryString(volatile char *url, volatile char *ass
 
 uint8_t strToUInt8(volatile char *letter, uint8_t len);
 
+void resetCurrentOp(void);
+
+void configureCurrentOp(uint8_t chipA, uint8_t internalA, uint8_t isReading, uint8_t *data);
