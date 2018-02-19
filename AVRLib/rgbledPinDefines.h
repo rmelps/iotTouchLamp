@@ -20,10 +20,33 @@
 #define BUTTON_PIN					PINC
 #define BUTTON_DDR					DDRC
 
-#define STATUS_LED					PB1
+#define CHANGE_PORT					PORTC
+#define CHANGE_PIN					PINC
+#define CHANGE_DDR					DDRC
+#define CHANGE_P					PC3
+
+#define STATUS_LED					PB0
 #define ERROR_LED					PC0
 
-#define CHANGE_P					PC1
+// Debug LEDs
+#define DEBUG_0						PD2
+#define DEBUG_1						PD4
+#define DEBUG_2						PB6
+#define DEBUG_3						PB7
+#define DEBUG_01_DDR				DDRD
+#define DEBUG_23_DDR				DDRB
+#define DEBUG_01_PORT				PORTD
+#define DEBUG_23_PORT				PORTB
+
+#define DEBUG_0_ON					DEBUG_01_PORT |= (1 << DEBUG_0)
+#define DEBUG_0_OFF					DEBUG_01_PORT &= ~(1 << DEBUG_0)
+#define DEBUG_1_ON					DEBUG_01_PORT |= (1 << DEBUG_1)
+#define DEBUG_1_OFF					DEBUG_01_PORT &= ~(1 << DEBUG_1)
+#define DEBUG_2_ON					DEBUG_23_PORT |= (1 << DEBUG_2)
+#define DEBUG_2_OFF					DEBUG_23_PORT &= ~(1 << DEBUG_2)
+#define DEBUG_3_ON					DEBUG_23_PORT |= (1 << DEBUG_3)
+#define DEBUG_3_OFF					DEBUG_23_PORT &= ~(1 << DEBUG_3)
+
 
 // SPI port defines
 

@@ -26,7 +26,7 @@
 
 // Specify Transmission Parameters
 // The maximum amount of data we will send at once is 3 bytes
-typedef struct {
+typedef struct I2C_Trans{
 	uint8_t chipAddress;
 	uint8_t internalAddress;
 	uint8_t isReading;
@@ -35,12 +35,12 @@ typedef struct {
 } I2C_Trans;
 
 // ---- I2C Initialization
-static inline void initI2C(void);
+void initI2C(void);
 
 // ---- I2C Transmission
 
-static inline void i2cStartTransmission(void);
-static inline void i2cStopTransmission(void);
+void i2cStartTransmission(void);
+void i2cStopTransmission(void);
 
 void i2cSlaveTransmit(I2C_Trans *t);
 

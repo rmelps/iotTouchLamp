@@ -10,6 +10,15 @@
 #define DETECT_STATUS				0x02
 #define KEY_STATUS					0x03
 
+// Position of specific keys in key status byte
+#define KEY_0						0
+#define KEY_1						1
+#define KEY_2						2
+#define KEY_3						3
+#define KEY_4						4
+#define KEY_5						5
+#define KEY_6						6
+
 // Negative threshold (sensitivity) for keys (default = count 20, 0 == always detected) (R/W)
 #define NEG_THRESH_0				0x20
 #define NEG_THRESH_1				0x21

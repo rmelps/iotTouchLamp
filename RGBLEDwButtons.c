@@ -14,8 +14,7 @@ volatile char dataR[3], dataG[3], dataB[3];
 // ------ TWI (I2C) communication -----
 // This is the single variable that keeps track of the current I2C command
 I2C_Trans currentOp;
-
-I2C_Trans sla_w_Op = {.chipAddress = currentOp.chipAddress, .internalAddress = currentOp.chipAddress, .isReading = 0, .data = 0};
+I2C_Trans nullOp;
 
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
@@ -106,6 +105,7 @@ ISR (PCINT1_vect) {
 
 	AT_currentMode = AT_INTERRUPTED;
 
+	/* ---- COMMENT BLOCK specific to BUTTON interrupts only
 	if (R_BUTTON_DOWN) {
 		colorBalance[0] += 15;
 		OCR0B = colorBalance[0];
@@ -117,6 +117,21 @@ ISR (PCINT1_vect) {
 	if (B_BUTTON_DOWN) {
 		colorBalance[2] += 15;
 		OCR0A = colorBalance[2];
+	}
+	*/
+
+	if (CHANGE_DETECTED) {
+		// We want to read both the DETECT_STATUS register and KEY_STATUS register. These are adjacent to each other,
+		// so we will start at DETECT_STATUS and read two data points (third data point marked as 0, since we don't want to read
+		// the third data point)
+		//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DETECT_STATUS, .isReading = 1, .data = {1,1,0}};
+		currentOp.chipAddress = AT42_CHIP_ADDRESS;
+		currentOp.internalAddress = DETECT_STATUS;
+		currentOp.isReading = 1;
+		currentOp.data[0] = 1;
+		currentOp.data[1] = 1;
+		currentOp.data[2] = 0;
+		i2cStartTransmission();
 	}
 
 	// Set Timer 1 count to 0
@@ -353,61 +368,100 @@ ISR (TWI_vect) {
 			// Always Send SLA+W after initial Start transmission (our slave requires this)
 			// Clear the TWSTA bit in TWCR after a start transmission succeeds
 			TWCR &= ~(1 << TWSTA);
-			i2cSlaveTransmit(&sla_w_Op);
+			i2cSendWrite(&currentOp.chipAddress);
+			DEBUG_0_ON;
 			break;
 		case I2C_START_REPEATED:
+			DEBUG_3_ON;
 			// If we are performing a repeated started, we must be switching to SLA+R, which would have
 			// to be our desired function.
 			// Send SLA+R
 			i2cSlaveTransmit(&currentOp);
 			break;
 		case I2C_ARBITRATION_LOST:
+			DEBUG_3_ON;
 			// Just exit the workflow here and clear currentOp
-			currentOp = {0};
+			currentOp.chipAddress = 0;
+			currentOp.internalAddress = 0;
+			currentOp.isReading = 0;
+			currentOp.data[0] = 0;
+			currentOp.data[1] = 0;
+			currentOp.data[2] = 0;
+			currentOp.iData = 0;
 			i2cStopTransmission();
 			break;
 		case I2C_SLAR_SENT_ACK:
+			DEBUG_1_ON;
 			// All good, waiting for data to be received
 			// If we only want to read one data point, then configure TWI to send NACK otherwise ACK
-			if (!(currentOp.data[iData + 1])) {
+			if (!(currentOp.data[currentOp.iData + 1])) {
 				TWCR &= ~(1 << TWEA);
 			}
 			break;
 		case I2C_SLAR_SENT_NACK:
+			DEBUG_2_ON;
 			// Experienced an error when addressing the slave, exit workflow
-			currentOp = {0};
+			currentOp.chipAddress = 0;
+			currentOp.internalAddress = 0;
+			currentOp.isReading = 0;
+			currentOp.data[0] = 0;
+			currentOp.data[1] = 0;
+			currentOp.data[2] = 0;
+			currentOp.iData = 0;
 			i2cStopTransmission();
 			break;
 		case I2C_R_DATA_ACK:
+			DEBUG_1_ON;
 			// We received some data and want to receive some more.
 			// Read the data in TWDR and keep going
-			currentOp.data[iData] = TWDR;
+			currentOp.data[currentOp.iData] = TWDR;
 			currentOp.iData++;
-			if (!(currentOp.data[iData + 1])) {
+			if (!(currentOp.data[currentOp.iData + 1])) {
 				TWCR &= ~(1 << TWEA);
 			}
 			break;
 		case I2C_R_DATA_NACK:
+			//DEBUG_2_ON;
 			// We received some data and want to stop reading data
 			// Read the data in TWDR and exit the workflow (Set TWSTO on TWCR)
-			currentOp.data[iData] = TWDR;
+			currentOp.data[currentOp.iData] = TWDR;
 			if (currentOp.chipAddress == AT42_CHIP_ADDRESS) {
-				uint8_t *p = &currentOp.data;
-				colorBalance[0] = *p;
-				colorBalance[1] = *(p+1);
-				colorBalance[2] = *(p+2);
+
+				if (currentOp.data[1] & (1 << KEY_0)) {
+					colorBalance[0] += 15;
+				}
+				if (currentOp.data[1] & (1 << KEY_1)) {
+					colorBalance[1] += 15;
+				}
+				if (currentOp.data[1] & (1 << KEY_2)) {
+					colorBalance[2] += 15;
+				}
 			}
-			currentOp = {0};
+			currentOp.chipAddress = 0;
+			currentOp.internalAddress = 0;
+			currentOp.isReading = 0;
+			currentOp.data[0] = 0;
+			currentOp.data[1] = 0;
+			currentOp.data[2] = 0;
+			currentOp.iData = 0;
 			i2cStopTransmission();
 			break;
 		case I2C_SLAW_SENT_ACK:
+			DEBUG_1_ON;
 			// Addressed a slave device for writing, now need to transmit the internal address
 			// within the slave device
 			i2cAddressTransmit(&currentOp);
 			break;
 		case I2C_SLAW_SENT_NACK:
+			//DEBUG_2_ON;
 			// An error must have occurred, exit workflow.
-			currentOp = {0};
+			currentOp.chipAddress = 0;
+			currentOp.internalAddress = 0;
+			currentOp.isReading = 0;
+			currentOp.data[0] = 0;
+			currentOp.data[1] = 0;
+			currentOp.data[2] = 0;
+			currentOp.iData = 0;
 			i2cStopTransmission();
 			break;
 		case I2C_W_DATA_ACK:
@@ -419,29 +473,44 @@ ISR (TWI_vect) {
 			// current position in the transmission cycle
 			// If we are READing, we must have sent the internal address.
 			// Can switch to READ mode by sending a Repeated Start
+			DEBUG_1_ON;
 			if (currentOp.isReading) {
 				i2cStartTransmission();
 			} else {
-				if (iData < ARRAY_LENGTH(currentOp.data) && (!(currentOp.data[iData + 1]))) {
+				if (currentOp.iData < ARRAY_LENGTH(currentOp.data) && (!(currentOp.data[currentOp.iData + 1]))) {
 					i2cDataTransmit(&currentOp);
-					iData++;
+					currentOp.iData++;
 				} else {
 					// If the index greater than the length of the data array, or we don't
 					// have any more data to send (indicatd by a 0 in the data array), we can exit.
-					currentOp = {0};
+					currentOp.chipAddress = 0;
+					currentOp.internalAddress = 0;
+					currentOp.isReading = 0;
+					currentOp.data[0] = 0;
+					currentOp.data[1] = 0;
+					currentOp.data[2] = 0;
+					currentOp.iData = 0;
 					i2cStopTransmission();
 				}
 			}
 			break;
 		case I2C_W_DATA_NACK:
+			//DEBUG_2_ON;
 			// Sent out some data, but it failed. Exit workflow and clear currentOp
-			currentOp = {0};
+			currentOp.chipAddress = 0;
+			currentOp.internalAddress = 0;
+			currentOp.isReading = 0;
+			currentOp.data[0] = 0;
+			currentOp.data[1] = 0;
+			currentOp.data[2] = 0;
+			currentOp.iData = 0;
 			i2cStopTransmission();
-			break;
 		default:
+			DEBUG_0_OFF;
 			break;
 	}
 
+	// Just to make sure that we always clear the interrupt flag...
 	TWINT_CLEAR;
 }
 
@@ -490,12 +559,12 @@ static inline void initTimers(void) {
 	TCCR2A |= (1 << COM2B1);
 }
 
-static inline void initButtonInterrupts(void) {
+static inline void initChangeInterrupt(void) {
 	cli();
 	// Enable interrupts on pin change interrupt vector 1
 	PCICR |= (1 << PCIE1);
-	// Enable interrupts specifically on the BUTTON pins
-	PCMSK1 |= (1 << PCINT11) | (1 << PCINT10) | (1 << PCINT9);
+	// Enable interrupts specifically on the pin reading the CHANGE output on AT42
+	PCMSK1 |= (1 << PCINT11);
 	// Clear any flags on PCINT1
 	PCIFR |= (1 << PCIF1);
 	sei();
@@ -504,20 +573,38 @@ static inline void initButtonInterrupts(void) {
 
 void setupCapTouch(void) {
 
-	currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = AKS_0, .isReading = 0, .data = {AKS_VAL,AKS_VAL,AKS_VAL}};
+	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = AKS_0, .isReading = 0, .data = {AKS_VAL,AKS_VAL,AKS_VAL}};
+	currentOp.chipAddress = AT42_CHIP_ADDRESS;
+	currentOp.internalAddress = AKS_0;
+	currentOp.isReading = 0;
+	currentOp.data[0] = AKS_VAL;
+	currentOp.data[1] = AKS_VAL;
+	currentOp.data[2] = AKS_VAL;
 	i2cStartTransmission();
-	while (currentOp) {
-		// wait until I2C comm has completed
+	while (currentOp.chipAddress != 0) {
+		//wait
 	}
-	currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DI_0, .isReading = 0, .data = {DI_VAL,DI_VAL,DI_VAL}};
+	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DI_0, .isReading = 0, .data = {DI_VAL,DI_VAL,DI_VAL}};
+	currentOp.chipAddress = AT42_CHIP_ADDRESS;
+	currentOp.internalAddress = DI_0;
+	currentOp.isReading = 0;
+	currentOp.data[0] = DI_VAL;
+	currentOp.data[1] = DI_VAL;
+	currentOp.data[2] = DI_VAL;
 	i2cStartTransmission();
-	while (currentOp) {
-		// wait until I2C comm has completed
+	while (currentOp.chipAddress != 0) {
+		//wait
 	}
-	currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = NEG_THRESH_0, .isReading = 0, .data = {NEG_THRESH_VAL,NEG_THRESH_VAL,NEG_THRESH_VAL}};
+	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = NEG_THRESH_0, .isReading = 0, .data = {NEG_THRESH_VAL,NEG_THRESH_VAL,NEG_THRESH_VAL}};
+	currentOp.chipAddress = AT42_CHIP_ADDRESS;
+	currentOp.internalAddress = NEG_THRESH_0;
+	currentOp.isReading = 0;
+	currentOp.data[0] = NEG_THRESH_VAL;
+	currentOp.data[1] = NEG_THRESH_VAL;
+	currentOp.data[2] = NEG_THRESH_VAL;
 	i2cStartTransmission();
-	while (currentOp) {
-		// wait until I2C comm has completed
+	while (currentOp.chipAddress != 0) {
+		//wait
 	}
 }
 
@@ -532,11 +619,16 @@ int main(void) {
 	// Set OC1A for output, for yellow status LED
 	DDRB |= (1 << STATUS_LED);
 
-	// ------ BUTTON SETUP -------
-	// Ensure that BUTTON_DDR is set for input
-	BUTTON_DDR &= ~((1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON));
-	// Enable pullup resistors on BUTTON_PIN
-	BUTTON_PORT |= (1 << RBUTTON) | (1 << GBUTTON) | (1 << BBUTTON);
+	// ----- DEBUG SETUP -----
+	DEBUG_01_DDR |= (1 << DEBUG_0) | (1 << DEBUG_1);
+	DEBUG_23_DDR |= (1 << DEBUG_2) | (1 << DEBUG_3);
+
+	// ------ CHANGE SETUP -------
+
+	// Ensure that CHANGE pin is set for input
+	CHANGE_DDR &= ~(1 << CHANGE_P);
+	// Enable pullup resistors on CHANGE_P
+	CHANGE_PORT |= (1 << CHANGE_P);
 
 	// ----- EEPROM CHECK -----
 	//EEPROM_readPage(COLOR_SAVE_ADDRESS,sizeof(colorBalance), colorBalance);
@@ -610,8 +702,8 @@ int main(void) {
 	setupCapTouch();
 
 
-	// ----- INTERRUPT INIT ------
-	initButtonInterrupts();
+	// ----- CHANGE INTERRUPT INIT ------
+	initChangeInterrupt();
 
 	// ------ LED SETUP -------
 

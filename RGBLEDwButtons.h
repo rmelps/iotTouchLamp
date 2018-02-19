@@ -28,6 +28,8 @@
 #define G_BUTTON_DOWN				(BUTTON_PIN & (1 << GBUTTON)) == 0
 #define B_BUTTON_DOWN				(BUTTON_PIN & (1 << BBUTTON)) == 0
 
+#define CHANGE_DETECTED				(CHANGE_PIN & (1 << CHANGE_P)) == 0
+
 // Connect to API parameters/execution
 // Found in the "commands" and "TCPReqCommands" structs...ensure that these are up to date at compile time
 // ---------------------
