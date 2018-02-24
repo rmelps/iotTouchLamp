@@ -14,7 +14,6 @@ volatile char dataR[3], dataG[3], dataB[3];
 // ------ TWI (I2C) communication -----
 // This is the single variable that keeps track of the current I2C command
 I2C_Trans currentOp;
-I2C_Trans nullOp;
 
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
@@ -103,7 +102,7 @@ ISR (PCINT1_vect) {
 	// we are comparing the input values on the button pin (which are pulled high
 	// by the pullup resistor unless the button is active)
 
-	//AT_currentMode = AT_INTERRUPTED;
+	AT_currentMode = AT_INTERRUPTED;
 
 	/* ---- COMMENT BLOCK specific to BUTTON interrupts only
 	if (R_BUTTON_DOWN) {
@@ -119,18 +118,14 @@ ISR (PCINT1_vect) {
 		OCR0A = colorBalance[2];
 	}
 	*/
-	/*
+	
 	if (CHANGE_DETECTED) {
 		// We want to read both the DETECT_STATUS register and KEY_STATUS register. These are adjacent to each other,
 		// so we will start at DETECT_STATUS and read two data points (third data point marked as 0, since we don't want to read
 		// the third data point)
 		//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DETECT_STATUS, .isReading = 1, .data = {1,1,0}};
-		currentOp.chipAddress = AT42_CHIP_ADDRESS;
-		currentOp.internalAddress = DETECT_STATUS;
-		currentOp.isReading = 1;
-		currentOp.data[0] = 1;
-		currentOp.data[1] = 1;
-		currentOp.data[2] = 0;
+		uint8_t data[] = {1,1,0};
+		configureCurrentOp(AT42_CHIP_ADDRESS, DETECT_STATUS, 1, data);
 		i2cStartTransmission();
 	}
 
@@ -142,7 +137,6 @@ ISR (PCINT1_vect) {
 	TIMSK1 |= (1 << OCIE1A);
 	// Disable interrupts on Timer 1 Comp B, so that we are no longer initiating TCP polling
 	TIMSK1 &= ~(1 << OCIE1B);
-	*/
 }
 
 ISR (TIMER1_COMPA_vect) {
@@ -369,7 +363,7 @@ ISR (TWI_vect) {
 		// Always Send SLA+W after initial Start transmission (our slave requires this)
 		// Clear the TWSTA bit in TWCR after a start transmission succeeds
 		//TWCR &= ~(1 << TWSTA);
-		i2cSendWrite(&currentOp.chipAddress);
+		i2cSendWrite(&currentOp);
 		//i2cSlaveTransmit(&currentOp);
 		//DEBUG_0_ON;
 
@@ -408,7 +402,11 @@ ISR (TWI_vect) {
 		//DEBUG_2_ON;
 		// We received some data and want to receive some more.
 		// Read the data in TWDR and keep going
-		*(currentOp.data + currentOp.iData) = *(&TWDR);
+		printString("<\0");
+		printByte(currentOp.data[currentOp.iData]);
+		currentOp.data[currentOp.iData] = i2cRead();
+		printByte(currentOp.data[currentOp.iData]);
+		printString(">\0");
 		currentOp.iData++;
 		if (!(currentOp.data[currentOp.iData + 1])) {
 			TWCR &= ~(1 << TWEA);
@@ -419,7 +417,11 @@ ISR (TWI_vect) {
 		//DEBUG_2_ON;
 		// We received some data and want to stop reading data
 		// Read the data in TWDR and exit the workflow (Set TWSTO on TWCR)
-		*(currentOp.data + currentOp.iData) = *(&TWDR);
+		printString("<<\0");
+		printByte(currentOp.data[currentOp.iData]);
+		currentOp.data[currentOp.iData] = i2cRead();
+		printByte(currentOp.data[currentOp.iData]);
+		printString(">>\0");
 		if (currentOp.chipAddress == AT42_CHIP_ADDRESS) {
 
 			if (currentOp.data[1] & (1 << KEY_0)) {
@@ -433,7 +435,6 @@ ISR (TWI_vect) {
 			}
 		}
 		DEBUG_3_ON;
-		printByte(TWDR);
 		resetCurrentOp();
 	}
 	else if ((TWSR & 0xF8) == I2C_SLAW_SENT_ACK) {
@@ -441,6 +442,9 @@ ISR (TWI_vect) {
 		TWCR &= ~(1 << TWSTA);
 		// Addressed a slave device for writing, now need to transmit the internal address
 		// within the slave device
+		printString("$$\0");
+		printByte(currentOp.internalAddress);
+		printString("$$\0");
 		i2cAddressTransmit(&currentOp);
 
 	}
@@ -546,54 +550,75 @@ void setupCapTouch(void) {
 
 	uint8_t data[3] = {0,0,0};
 
+	*(data) = AKS_VAL;
+	*(data + 1) = AKS_VAL;
+	*(data + 2) = AKS_VAL;
+	configureCurrentOp(AT42_CHIP_ADDRESS, AKS_0, 0, data);
+	printString("|\0");
+	printByte(currentOp.chipAddress);
+	printString("|\0");
+	printByte(currentOp.internalAddress);
+	printString("|\0");
 	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = AKS_0, .isReading = 0, .data = {AKS_VAL,AKS_VAL,AKS_VAL}};
-	currentOp.chipAddress = AT42_CHIP_ADDRESS;
-	currentOp.internalAddress = AKS_0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = AKS_VAL;
-	currentOp.data[1] = AKS_VAL;
-	currentOp.data[2] = AKS_VAL;
 	i2cStartTransmission();
 	while (currentOp.chipAddress != 0) {
 		//wait
 	}
+	*(data) = DI_VAL;
+	*(data + 1) = DI_VAL;
+	*(data + 2) = DI_VAL;
+	configureCurrentOp(AT42_CHIP_ADDRESS, DI_0, 0, data);
+	printString("|\0");
+	printByte(currentOp.chipAddress);
+	printString("|\0");
+	printByte(currentOp.internalAddress);
+	printString("|\0");
 	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DI_0, .isReading = 0, .data = {DI_VAL,DI_VAL,DI_VAL}};
-	currentOp.chipAddress = AT42_CHIP_ADDRESS;
-	currentOp.internalAddress = DI_0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = DI_VAL;
-	currentOp.data[1] = DI_VAL;
-	currentOp.data[2] = DI_VAL;
 	i2cStartTransmission();
 	while (currentOp.chipAddress != 0) {
 		//wait
 	}
+	*(data) = NEG_THRESH_VAL;
+	*(data + 1) = NEG_THRESH_VAL;
+	*(data + 2) = NEG_THRESH_VAL;
+	configureCurrentOp(AT42_CHIP_ADDRESS, NEG_THRESH_0, 0, data);
+	printString("|\0");
+	printByte(currentOp.chipAddress);
+	printString("|\0");
+	printByte(currentOp.internalAddress);
+	printString("|\0");
 	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = NEG_THRESH_0, .isReading = 0, .data = {NEG_THRESH_VAL,NEG_THRESH_VAL,NEG_THRESH_VAL}};
-	currentOp.chipAddress = AT42_CHIP_ADDRESS;
-	currentOp.internalAddress = NEG_THRESH_0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = NEG_THRESH_VAL;
-	currentOp.data[1] = NEG_THRESH_VAL;
-	currentOp.data[2] = NEG_THRESH_VAL;
+	i2cStartTransmission();
+	while (currentOp.chipAddress != 0) {
+		//wait
+	}
+	*(data) = MAX_ON_DUR_DUR_VAL;
+	*(data + 1) = MAX_ON_DUR_VAL;
+	*(data + 2) = MAX_ON_DUR_VAL;
+	configureCurrentOp(AT42_CHIP_ADDRESS, MAX_ON_DUR, 0, data);
+	i2cStartTransmission();
+	while (currentOp.chipAddress != 0) {
+		//wait
+	}
+	DEBUG_0_OFF;
+	DEBUG_1_OFF;
+	DEBUG_2_OFF;
+	DEBUG_3_OFF;
+	*(data) = 1;
+	*(data + 1) = 1;
+	*(data + 2) = 0;
+	configureCurrentOp(AT42_CHIP_ADDRESS, KEY_STATUS, 1, data);
+	printString("|\0");
+	printByte(currentOp.chipAddress);
+	printString("|\0");
+	printByte(currentOp.internalAddress);
+	printString("|\0");
+	printByte(currentOp.internalAddress);
 	i2cStartTransmission();
 	while (currentOp.chipAddress != 0) {
 		//wait
 	}
 
-	DEBUG_0_OFF;
-	DEBUG_1_OFF;
-	DEBUG_2_OFF;
-	DEBUG_3_OFF;
-	data[0] = 3;
-	data[1] = 0;
-	data[2] = 0;
-	configureCurrentOp(AT42_CHIP_ADDRESS, NEG_THRESH_2, 1, data);
-	printByte(*currentOp.data);
-	i2cStartTransmission();
-	while (currentOp.chipAddress != 0) {
-		//wait
-	}
-	printByte(*currentOp.data);
 }
 
 int main(void) {
@@ -691,6 +716,7 @@ int main(void) {
 
 
 	// ----- CHANGE INTERRUPT INIT ------
+	_delay_ms(1000);
 	initChangeInterrupt();
 
 	// ------ LED SETUP -------
@@ -710,6 +736,13 @@ int main(void) {
 				iCommands++;
 			}			
 		}
+		/*
+		if (!(currentOp.chipAddress)) {
+			uint8_t data[] = {1,1,0};
+			configureCurrentOp(AT42_CHIP_ADDRESS, DETECT_STATUS, 1, data);
+			i2cStartTransmission();
+		}
+		*/
 		OCR0B = colorBalance[0];
 		OCR2B = colorBalance[1];	
 		OCR0A = colorBalance[2];

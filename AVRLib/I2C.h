@@ -48,7 +48,9 @@ void i2cDataTransmit(I2C_Trans *t);
 
 void i2cAddressTransmit(I2C_Trans *t);
 
-void i2cSendWrite(uint8_t *chipAddress);
+void i2cSendWrite(I2C_Trans *t);
+
+uint8_t i2cRead(void);
 
 
 

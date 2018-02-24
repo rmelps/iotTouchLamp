@@ -7,6 +7,8 @@
 // ----- Internal Register Addresses (Chapter 5 in Chip Manual)
 
 // Current Status of all keys, indicating whether they are pressed or not (Read only)
+#define CHIP_ID						0x00
+#define FW_VER						0x01
 #define DETECT_STATUS				0x02
 #define KEY_STATUS					0x03
 
@@ -36,10 +38,13 @@
 #define DI_1						0x2F
 #define DI_2						0x30
 
+#define MAX_ON_DUR					0x37
+
 // ----- Settings to initialize
-#define NEG_THRESH_VAL				20
-#define AKS_VAL						1
-#define DI_VAL						4
+#define NEG_THRESH_VAL				40
+#define AKS_VAL						0b01000001
+#define DI_VAL						25
+#define MAX_ON_DUR_VAL				3
 
 
 
