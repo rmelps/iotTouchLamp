@@ -13,8 +13,6 @@ volatile char dataR[3], dataG[3], dataB[3];
 
 // ------ TWI (I2C) communication -----
 // This is the single variable that keeps track of the current I2C command
-I2C_Trans currentOp;
-I2C_Trans nullOp;
 
 // ------ COMMANDS -------
 typedef void(*commandFuncs)(char *parameters[], uint8_t len);
@@ -543,57 +541,200 @@ static inline void initChangeInterrupt(void) {
 }
 
 void setupCapTouch(void) {
+	uint8_t error;
 
-	uint8_t data[3] = {0,0,0};
+	// -------- BELOW IS AN I2C TEST ----------
+	// This at a minimum should pass if our I2C comms are working
 
-	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = AKS_0, .isReading = 0, .data = {AKS_VAL,AKS_VAL,AKS_VAL}};
-	currentOp.chipAddress = AT42_CHIP_ADDRESS;
-	currentOp.internalAddress = AKS_0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = AKS_VAL;
-	currentOp.data[1] = AKS_VAL;
-	currentOp.data[2] = AKS_VAL;
-	i2cStartTransmission();
-	while (currentOp.chipAddress != 0) {
-		//wait
+	// ------ AKS CONFIGURATION
+	I2C_START;
+	waitUntilTWIReady();
+	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AT42_WRITE);
+		waitUntilTWIReady();
 	}
-	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DI_0, .isReading = 0, .data = {DI_VAL,DI_VAL,DI_VAL}};
-	currentOp.chipAddress = AT42_CHIP_ADDRESS;
-	currentOp.internalAddress = DI_0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = DI_VAL;
-	currentOp.data[1] = DI_VAL;
-	currentOp.data[2] = DI_VAL;
-	i2cStartTransmission();
-	while (currentOp.chipAddress != 0) {
-		//wait
+	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AKS_0);
+		waitUntilTWIReady();
 	}
-	//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = NEG_THRESH_0, .isReading = 0, .data = {NEG_THRESH_VAL,NEG_THRESH_VAL,NEG_THRESH_VAL}};
-	currentOp.chipAddress = AT42_CHIP_ADDRESS;
-	currentOp.internalAddress = NEG_THRESH_0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = NEG_THRESH_VAL;
-	currentOp.data[1] = NEG_THRESH_VAL;
-	currentOp.data[2] = NEG_THRESH_VAL;
-	i2cStartTransmission();
-	while (currentOp.chipAddress != 0) {
-		//wait
+	// At data location AKS_0
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AKS_VAL);
+		waitUntilTWIReady();
 	}
+	// At data location AKS_1
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AKS_VAL);
+		waitUntilTWIReady();
+	}
+	// At data location AKS_2
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AKS_VAL);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	}
+	I2C_STOP;
 
-	DEBUG_0_OFF;
-	DEBUG_1_OFF;
-	DEBUG_2_OFF;
-	DEBUG_3_OFF;
-	data[0] = 3;
-	data[1] = 0;
-	data[2] = 0;
-	configureCurrentOp(AT42_CHIP_ADDRESS, NEG_THRESH_2, 1, data);
-	printByte(*currentOp.data);
-	i2cStartTransmission();
-	while (currentOp.chipAddress != 0) {
-		//wait
+	// ------ DI CONFIGURATION
+	error = 0;
+	I2C_START;
+	waitUntilTWIReady();
+	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AT42_WRITE);
+		waitUntilTWIReady();
 	}
-	printByte(*currentOp.data);
+	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(DI_0);
+		waitUntilTWIReady();
+	}
+	// At data location DI_0
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(DI_VAL);
+		waitUntilTWIReady();
+	}
+	// At data location DI_1
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(DI_VAL);
+		waitUntilTWIReady();
+	}
+	// At data location DI_2
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(DI_VAL);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	}
+	I2C_STOP;
+
+	// ------ NEG_THRESH CONFIGURATION
+	error = 0;
+	I2C_START;
+	waitUntilTWIReady();
+	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AT42_WRITE);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(NEG_THRESH_0);
+		waitUntilTWIReady();
+	}
+	// At data location NEG_THRESH_0
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(NEG_THRESH_VAL);
+		waitUntilTWIReady();
+	}
+	// At data location NEG_THRESH_1
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(NEG_THRESH_VAL);
+		waitUntilTWIReady();
+	}
+	// At data location NEG_THRESH_2
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(NEG_THRESH_VAL);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	}
+	I2C_STOP;
+
+	// ------ READ BACK THE NEG_THRESH VAL
+	uint8_t thresh_val;
+	error = 0;
+	I2C_START;
+	waitUntilTWIReady();
+	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(AT42_WRITE);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		i2cSend(NEG_THRESH_0);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		I2C_START;
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_START_REPEATED) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		I2C_DISABLE_ACK;
+		i2cSend(AT42_READ);
+		waitUntilTWIReady();
+	}
+	if ((TWSR_READ != I2C_R_DATA_NACK) || error) {
+		printString("Error");
+		error += 1;
+	} else {
+		thresh_val = i2cRead();
+	}
+	printString("|\0");
+	printByte(error);
+	printString("|\0");
+	printByte(thresh_val);
+	printString("|\0");
+	I2C_STOP;
 }
 
 int main(void) {
@@ -710,6 +851,70 @@ int main(void) {
 				iCommands++;
 			}			
 		}
+		// We were interrupted by the CHANGE BUTTON going low, putting us in an interrupted state.
+		// We should check the Key values at this point and update the color accordingly
+		// Interrupts should be disabled during this check
+		if (AT_currentMode == AT_INTERRUPTED) {
+			uint8_t error;
+			uint8_t detect_status;
+			uint8_t key_status;
+			// Disable global interrupts
+			cli();
+			// Read DETECT_STATUS & KEY_STATUS
+			I2C_START;
+			waitUntilTWIReady();
+			if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
+				printString("Error");
+				error += 1;
+			} else {
+				i2cSend(AT42_WRITE);
+				waitUntilTWIReady();
+			}
+			if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
+				printString("Error");
+				error += 1;
+			} else {
+				i2cSend(DETECT_STATUS);
+				waitUntilTWIReady();
+			}
+			if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
+				printString("Error");
+				error += 1;
+			} else {
+				I2C_START;
+				waitUntilTWIReady();
+			}
+			if ((TWSR_READ != I2C_START_REPEATED) || error) {
+				printString("Error");
+				error += 1;
+			} else {
+				I2C_ENABLE_ACK;
+				i2cSend(AT42_READ);
+				waitUntilTWIReady();
+			}
+			if ((TWSR_READ != I2C_R_DATA_ACK) || error) {
+				printString("Error");
+				error += 1;
+			} else {
+				I2C_DISABLE_ACK;
+				detect_status = i2cRead();
+			}
+			if ((TWSR_READ != I2C_R_DATA_NACK) || error) {
+				printString("Error");
+				error += 1;
+			} else {
+				key_status = i2cRead();
+			}
+			printByte(error);
+			printString("|\0");
+			printByte(detect_status);
+			printString("|\0");
+			printByte(key_status);
+			printString("|\0");
+			I2C_STOP;
+			// Reenable global interrupts
+			sei();
+		}
 		OCR0B = colorBalance[0];
 		OCR2B = colorBalance[1];	
 		OCR0A = colorBalance[2];
@@ -783,29 +988,6 @@ uint8_t strToUInt8(volatile char *letter, uint8_t len) {
 	}
 	
 	return result;
-}
-
-void resetCurrentOp(void) {
-	currentOp.chipAddress = 0;
-	/*
-	currentOp.internalAddress = 0;
-	currentOp.isReading = 0;
-	currentOp.data[0] = 0;
-	currentOp.data[1] = 0;
-	currentOp.data[2] = 0;
-	currentOp.iData = 0;
-	*/
-	i2cStopTransmission();
-}
-
-void configureCurrentOp(uint8_t chipA, uint8_t internalA, uint8_t isReading, uint8_t *data) {
-	currentOp.chipAddress = chipA;
-	currentOp.internalAddress = internalA;
-	currentOp.isReading = isReading;
-	*(currentOp.data) = *data;
-	*(currentOp.data + 1) = *(data+1);
-	*(currentOp.data + 2) = *(data+2);
-	currentOp.iData = 0;
 }
 
 

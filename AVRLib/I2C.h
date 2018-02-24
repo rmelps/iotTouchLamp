@@ -24,31 +24,24 @@
 #define TWSR_READ					TWSR & 0xF8
 #define TWINT_CLEAR					TWCR |= (1 << TWEN) | (1 << TWINT)
 
+#define I2C_START 					TWCR |= (1 << TWEN) | (1 << TWINT) | (1 << TWSTA);
+#define I2C_STOP					TWCR |= (1 << TWEN) | (1 << TWINT) | (1 << TWSTO);
+#define I2C_ENABLE_ACK				TWCR |= (1 << TWEA);
+#define I2C_DISABLE_ACK				TWCR &= ~(1 << TWEA);
+
 // Specify Transmission Parameters
 // The maximum amount of data we will send at once is 3 bytes
-typedef struct I2C_Trans{
-	volatile uint8_t chipAddress;
-	volatile uint8_t internalAddress;
-	volatile uint8_t isReading;
-	volatile uint8_t data[3];
-	volatile uint8_t iData;
-} I2C_Trans;
 
 // ---- I2C Initialization
 void initI2C(void);
 
 // ---- I2C Transmission
 
-void i2cStartTransmission(void);
-void i2cStopTransmission(void);
+void waitUntilTWIReady(void);
 
-void i2cSlaveTransmit(I2C_Trans *t);
+void i2cSend(uint8_t data);
 
-void i2cDataTransmit(I2C_Trans *t);
-
-void i2cAddressTransmit(I2C_Trans *t);
-
-void i2cSendWrite(uint8_t *chipAddress);
+uint8_t i2cRead();
 
 
 

@@ -2,7 +2,8 @@
 // Sensor and the ATMega
 
 // ----- Chip Address
-#define AT42_CHIP_ADDRESS			0x1B
+#define AT42_READ					0x37
+#define AT42_WRITE					0x36
 
 // ----- Internal Register Addresses (Chapter 5 in Chip Manual)
 
