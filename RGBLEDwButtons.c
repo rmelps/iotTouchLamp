@@ -101,8 +101,6 @@ ISR (PCINT1_vect) {
 	// we are comparing the input values on the button pin (which are pulled high
 	// by the pullup resistor unless the button is active)
 
-	//AT_currentMode = AT_INTERRUPTED;
-
 	/* ---- COMMENT BLOCK specific to BUTTON interrupts only
 	if (R_BUTTON_DOWN) {
 		colorBalance[0] += 15;
@@ -117,19 +115,9 @@ ISR (PCINT1_vect) {
 		OCR0A = colorBalance[2];
 	}
 	*/
-	/*
+	
 	if (CHANGE_DETECTED) {
-		// We want to read both the DETECT_STATUS register and KEY_STATUS register. These are adjacent to each other,
-		// so we will start at DETECT_STATUS and read two data points (third data point marked as 0, since we don't want to read
-		// the third data point)
-		//currentOp = {.chipAddress = AT42_CHIP_ADDRESS, .internalAddress = DETECT_STATUS, .isReading = 1, .data = {1,1,0}};
-		currentOp.chipAddress = AT42_CHIP_ADDRESS;
-		currentOp.internalAddress = DETECT_STATUS;
-		currentOp.isReading = 1;
-		currentOp.data[0] = 1;
-		currentOp.data[1] = 1;
-		currentOp.data[2] = 0;
-		i2cStartTransmission();
+		AT_currentMode = AT_INTERRUPTED;
 	}
 
 	// Set Timer 1 count to 0
@@ -140,7 +128,7 @@ ISR (PCINT1_vect) {
 	TIMSK1 |= (1 << OCIE1A);
 	// Disable interrupts on Timer 1 Comp B, so that we are no longer initiating TCP polling
 	TIMSK1 &= ~(1 << OCIE1B);
-	*/
+	
 }
 
 ISR (TIMER1_COMPA_vect) {
@@ -361,128 +349,6 @@ ISR (USART_RX_vect) {
 	}
 }
 
-ISR (TWI_vect) {
-
-	if ((TWSR & 0xF8) == I2C_START_TRANSMITTED) {
-		// Always Send SLA+W after initial Start transmission (our slave requires this)
-		// Clear the TWSTA bit in TWCR after a start transmission succeeds
-		//TWCR &= ~(1 << TWSTA);
-		i2cSendWrite(&currentOp.chipAddress);
-		//i2cSlaveTransmit(&currentOp);
-		//DEBUG_0_ON;
-
-	}
-	else if ((TWSR & 0xF8) == I2C_START_REPEATED) {
-		//DEBUG_3_ON;
-		// If we are performing a repeated started, we must be switching to SLA+R, which would have
-		// to be our desired function.
-		// Send SLA+R
-		//DEBUG_2_ON;
-		i2cSlaveTransmit(&currentOp);
-
-	}
-	else if ((TWSR & 0xF8) == I2C_ARBITRATION_LOST) {
-		//DEBUG_3_ON;
-		// Just exit the workflow here and clear currentOp
-		resetCurrentOp();
-	}
-	else if ((TWSR & 0xF8) == I2C_SLAR_SENT_ACK) {
-		DEBUG_2_ON;
-		TWCR &= ~(1 << TWSTA);
-		// All good, waiting for data to be received
-		// If we only want to read one data point, then configure TWI to send NACK otherwise ACK
-		if (!(currentOp.data[currentOp.iData + 1])) {
-			TWCR &= ~(1 << TWEA);
-		}
-		//DEBUG_3_ON;
-
-	}
-	else if ((TWSR & 0xF8) == I2C_SLAR_SENT_NACK) {
-		//DEBUG_2_ON;
-		// Experienced an error when addressing the slave, exit workflow
-		resetCurrentOp();
-	}
-	else if ((TWSR & 0xF8) == I2C_R_DATA_ACK) {
-		//DEBUG_2_ON;
-		// We received some data and want to receive some more.
-		// Read the data in TWDR and keep going
-		*(currentOp.data + currentOp.iData) = *(&TWDR);
-		currentOp.iData++;
-		if (!(currentOp.data[currentOp.iData + 1])) {
-			TWCR &= ~(1 << TWEA);
-		}
-		//DEBUG_3_ON;
-	}
-	else if ((TWSR & 0xF8) == I2C_R_DATA_NACK) {
-		//DEBUG_2_ON;
-		// We received some data and want to stop reading data
-		// Read the data in TWDR and exit the workflow (Set TWSTO on TWCR)
-		*(currentOp.data + currentOp.iData) = *(&TWDR);
-		if (currentOp.chipAddress == AT42_CHIP_ADDRESS) {
-
-			if (currentOp.data[1] & (1 << KEY_0)) {
-				colorBalance[0] += 15;
-			}
-			if (currentOp.data[1] & (1 << KEY_1)) {
-				colorBalance[1] += 15;
-			}
-			if (currentOp.data[1] & (1 << KEY_2)) {
-				colorBalance[2] += 15;
-			}
-		}
-		DEBUG_3_ON;
-		printByte(TWDR);
-		resetCurrentOp();
-	}
-	else if ((TWSR & 0xF8) == I2C_SLAW_SENT_ACK) {
-		DEBUG_0_ON;
-		TWCR &= ~(1 << TWSTA);
-		// Addressed a slave device for writing, now need to transmit the internal address
-		// within the slave device
-		i2cAddressTransmit(&currentOp);
-
-	}
-	else if ((TWSR & 0xF8) == I2C_SLAW_SENT_NACK) {
-		//DEBUG_2_ON;
-		// An error must have occurred, exit workflow.
-		resetCurrentOp();
-	}
-	else if ((TWSR & 0xF8) == I2C_W_DATA_ACK) {
-		// Sent out some data, and got the okay from the slave.
-		// If our transmission is READ, send a repeated START
-		// If our transmission is WRITE, send some more data
-		// If we are WRITEing, we must have sent the internal address already, 
-		// increment iData keep track of the current byte to transmit
-		// current position in the transmission cycle
-		// If we are READing, we must have sent the internal address.
-		// Can switch to READ mode by sending a Repeated Start
-		//DEBUG_0_ON;
-		if (currentOp.isReading) {
-			DEBUG_1_ON;
-			i2cStartTransmission();
-		} else {
-			if ((currentOp.iData < 3) && ((currentOp.data[currentOp.iData + 1]))) {
-				//DEBUG_2_ON;
-				i2cDataTransmit(&currentOp);
-				currentOp.iData++;
-			} else {
-				//DEBUG_3_ON;
-				// If the index greater than the length of the data array, or we don't
-				// have any more data to send (indicatd by a 0 in the data array), we can exit.
-				resetCurrentOp();
-			}
-		}
-	}
-	else if ((TWSR & 0xF8) == I2C_W_DATA_NACK) {
-		//DEBUG_2_ON;
-		// Sent out some data, but it failed. Exit workflow and clear currentOp
-		resetCurrentOp();
-	}
-
-	// Just to make sure that we always clear the interrupt flag...
-	TWINT_CLEAR;
-}
-
 static inline void initTimers(void) {
 	// Set the clock prescale divider to 1, so running at 8 Mhz
 	clock_prescale_set(clock_div_1);
@@ -542,53 +408,50 @@ static inline void initChangeInterrupt(void) {
 
 void setupCapTouch(void) {
 	uint8_t error;
-
-	// -------- BELOW IS AN I2C TEST ----------
-	// This at a minimum should pass if our I2C comms are working
-
+	/*
 	// ------ AKS CONFIGURATION
 	I2C_START;
 	waitUntilTWIReady();
-	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_START_TRANSMITTED) || error) {
+		printString("E0\0");
 		error += 1;
 	} else {
 		i2cSend(AT42_WRITE);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_SLAW_SENT_ACK) || error) {
+		printString("E1\0");
 		error += 1;
 	} else {
 		i2cSend(AKS_0);
 		waitUntilTWIReady();
 	}
 	// At data location AKS_0
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E2\0");
 		error += 1;
 	} else {
 		i2cSend(AKS_VAL);
 		waitUntilTWIReady();
 	}
 	// At data location AKS_1
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E3\0");
 		error += 1;
 	} else {
 		i2cSend(AKS_VAL);
 		waitUntilTWIReady();
 	}
 	// At data location AKS_2
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E4\0");
 		error += 1;
 	} else {
 		i2cSend(AKS_VAL);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E5\0");
 		error += 1;
 	}
 	I2C_STOP;
@@ -597,46 +460,47 @@ void setupCapTouch(void) {
 	error = 0;
 	I2C_START;
 	waitUntilTWIReady();
-	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_START_TRANSMITTED) || error) {
+		printByte(TWSR_READ);
+		printString("E6\0");
 		error += 1;
 	} else {
 		i2cSend(AT42_WRITE);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_SLAW_SENT_ACK) || error) {
+		printString("E7\0");
 		error += 1;
 	} else {
 		i2cSend(DI_0);
 		waitUntilTWIReady();
 	}
 	// At data location DI_0
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E8\0");
 		error += 1;
 	} else {
 		i2cSend(DI_VAL);
 		waitUntilTWIReady();
 	}
 	// At data location DI_1
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E9\0");
 		error += 1;
 	} else {
 		i2cSend(DI_VAL);
 		waitUntilTWIReady();
 	}
 	// At data location DI_2
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E10\0");
 		error += 1;
 	} else {
 		i2cSend(DI_VAL);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E11\0");
 		error += 1;
 	}
 	I2C_STOP;
@@ -645,46 +509,46 @@ void setupCapTouch(void) {
 	error = 0;
 	I2C_START;
 	waitUntilTWIReady();
-	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_START_TRANSMITTED) || error) {
+		printString("E12\0");
 		error += 1;
 	} else {
 		i2cSend(AT42_WRITE);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_SLAW_SENT_ACK) || error) {
+		printString("E13\0");
 		error += 1;
 	} else {
 		i2cSend(NEG_THRESH_0);
 		waitUntilTWIReady();
 	}
 	// At data location NEG_THRESH_0
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E14\0");
 		error += 1;
 	} else {
 		i2cSend(NEG_THRESH_VAL);
 		waitUntilTWIReady();
 	}
 	// At data location NEG_THRESH_1
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E15\0");
 		error += 1;
 	} else {
 		i2cSend(NEG_THRESH_VAL);
 		waitUntilTWIReady();
 	}
 	// At data location NEG_THRESH_2
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E16\0");
 		error += 1;
 	} else {
 		i2cSend(NEG_THRESH_VAL);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E17\0");
 		error += 1;
 	}
 	I2C_STOP;
@@ -694,45 +558,111 @@ void setupCapTouch(void) {
 	error = 0;
 	I2C_START;
 	waitUntilTWIReady();
-	if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_START_TRANSMITTED) || error) {
+		printString("E18\0");
 		error += 1;
 	} else {
 		i2cSend(AT42_WRITE);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_SLAW_SENT_ACK) || error) {
+		printString("E19\0");
 		error += 1;
 	} else {
 		i2cSend(NEG_THRESH_0);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E20\0");
 		error += 1;
 	} else {
 		I2C_START;
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_START_REPEATED) || error) {
-		printString("Error");
+	if (((TWSR_READ) != I2C_START_REPEATED) || error) {
+		printString("E21\0");
 		error += 1;
 	} else {
-		I2C_DISABLE_ACK;
 		i2cSend(AT42_READ);
 		waitUntilTWIReady();
 	}
-	if ((TWSR_READ != I2C_R_DATA_NACK) || error) {
-		printString("Error");
-		error += 1;
-	} else {
-		thresh_val = i2cRead();
+	if ((TWSR_READ) == I2C_SLAR_SENT_ACK) {
+		printString("ACK\0");
 	}
-	printString("|\0");
-	printByte(error);
+	if ((TWSR_READ) == I2C_SLAR_SENT_NACK) {
+		printString("NACK\0");
+	}
+	else {
+		printByte(TWSR_READ);
+	}
+
+	if (((TWSR_READ) != I2C_SLAR_SENT_ACK) || error) {
+		printByte((TWSR_READ));
+		printString("E22");
+		error += 1;
+	} 
+	else {
+		thresh_val = i2cReadNack();
+	}
+
 	printString("|\0");
 	printByte(thresh_val);
+	printString("|\0");
+	I2C_STOP;
+	*/
+	// ------ READ BACK THE KEY_STATUS VAL
+	uint8_t detect_status;
+	uint8_t key_status;
+	error = 0;
+	I2C_START;
+	waitUntilTWIReady();
+	if (((TWSR_READ) != I2C_START_TRANSMITTED) || error) {
+		printString("E23\0");
+		error += 1;
+	} else {
+		i2cSend(AT42_WRITE);
+		waitUntilTWIReady();
+	}
+	if (((TWSR_READ) != I2C_SLAW_SENT_ACK) || error) {
+		printString("E24\0");
+		error += 1;
+	} else {
+		i2cSend(DETECT_STATUS);
+		waitUntilTWIReady();
+	}
+	if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+		printString("E25\0");
+		error += 1;
+	} else {
+		I2C_START;
+		waitUntilTWIReady();
+	}
+	if (((TWSR_READ) != I2C_START_REPEATED) || error) {
+		printString("E26\0");
+		error += 1;
+	} else {
+		i2cSend(AT42_READ);
+		waitUntilTWIReady();
+	}
+	if (((TWSR_READ) != I2C_SLAR_SENT_ACK) || error) {
+		printByte((TWSR_READ));
+		printString("E27");
+		error += 1;
+	} 
+	else {
+		detect_status = i2cReadAck();
+	}
+	if (((TWSR_READ) != I2C_R_DATA_ACK) || error) {
+		printString("E28");
+		error += 1;
+	} else {
+		key_status = i2cReadNack();
+	}
+
+	printString("|\0");
+	printByte(detect_status);
+	printString("|\0");
+	printByte(key_status);
 	printString("|\0");
 	I2C_STOP;
 }
@@ -855,63 +785,79 @@ int main(void) {
 		// We should check the Key values at this point and update the color accordingly
 		// Interrupts should be disabled during this check
 		if (AT_currentMode == AT_INTERRUPTED) {
+			// Disable global interrupts
+			cli();
+			// ------ Read DETECT_STATUS & KEY_STATUS
 			uint8_t error;
 			uint8_t detect_status;
 			uint8_t key_status;
-			// Disable global interrupts
-			cli();
-			// Read DETECT_STATUS & KEY_STATUS
+			error = 0;
 			I2C_START;
 			waitUntilTWIReady();
-			if ((TWSR_READ != I2C_START_TRANSMITTED) || error) {
-				printString("Error");
+			if (((TWSR_READ) != I2C_START_TRANSMITTED) || error) {
+				printString("E23\0");
 				error += 1;
 			} else {
 				i2cSend(AT42_WRITE);
 				waitUntilTWIReady();
 			}
-			if ((TWSR_READ != I2C_SLAW_SENT_ACK) || error) {
-				printString("Error");
+			if (((TWSR_READ) != I2C_SLAW_SENT_ACK) || error) {
+				printString("E24\0");
 				error += 1;
 			} else {
 				i2cSend(DETECT_STATUS);
 				waitUntilTWIReady();
 			}
-			if ((TWSR_READ != I2C_W_DATA_ACK) || error) {
-				printString("Error");
+			if (((TWSR_READ) != I2C_W_DATA_ACK) || error) {
+				printString("E25\0");
 				error += 1;
 			} else {
 				I2C_START;
 				waitUntilTWIReady();
 			}
-			if ((TWSR_READ != I2C_START_REPEATED) || error) {
-				printString("Error");
+			if (((TWSR_READ) != I2C_START_REPEATED) || error) {
+				printString("E26\0");
 				error += 1;
 			} else {
-				I2C_ENABLE_ACK;
 				i2cSend(AT42_READ);
 				waitUntilTWIReady();
 			}
-			if ((TWSR_READ != I2C_R_DATA_ACK) || error) {
-				printString("Error");
+			if (((TWSR_READ) != I2C_SLAR_SENT_ACK) || error) {
+				printByte((TWSR_READ));
+				printString("E27");
+				error += 1;
+			} 
+			else {
+				detect_status = i2cReadAck();
+			}
+			if (((TWSR_READ) != I2C_R_DATA_ACK) || error) {
+				printString("E28");
 				error += 1;
 			} else {
-				I2C_DISABLE_ACK;
-				detect_status = i2cRead();
+				key_status = i2cReadNack();
 			}
-			if ((TWSR_READ != I2C_R_DATA_NACK) || error) {
-				printString("Error");
-				error += 1;
-			} else {
-				key_status = i2cRead();
-			}
-			printByte(error);
+
 			printString("|\0");
 			printByte(detect_status);
 			printString("|\0");
 			printByte(key_status);
 			printString("|\0");
 			I2C_STOP;
+			AT_currentMode = AT_WAITING;
+
+			if (key_status & (1 << KEY_0)) {
+				colorBalance[0] += 15;
+				OCR0B = colorBalance[0];
+			}
+			if (key_status & (1 << KEY_2)) {
+				colorBalance[1] += 15;
+				OCR2B = colorBalance[1];
+			}
+			if (key_status & (1 << KEY_4)) {
+				colorBalance[2] += 15;
+				OCR0A = colorBalance[2];
+			}
+
 			// Reenable global interrupts
 			sei();
 		}

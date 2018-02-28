@@ -1,4 +1,5 @@
 #include "I2C.h"
+#include "USART.h"
 
 void initI2C(void) {
 
@@ -14,18 +15,32 @@ void initI2C(void) {
 }
 
 void waitUntilTWIReady(void) {
+	//printString("W \0");
 	while (!(TWCR & (1 << TWINT))) {
 		// wait for TWI flag to be set
 	}
 }
 
 void i2cSend(uint8_t data) {
+	//printString("SND\0");
+	//printByte(data);
 	waitUntilTWIReady();
 	TWDR = data;
 	TWCR = (1 << TWEN) | (1 << TWINT);
 }
 
-uint8_t i2cRead() {
+uint8_t i2cReadAck() {
+	//printString("RD\0");
+	TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA);
 	waitUntilTWIReady();
+	//printByte(TWDR);
+	return (TWDR);
+}
+
+uint8_t i2cReadNack() {
+	//printString("RD\0");
+	TWCR = (1 << TWEN) | (1 << TWINT);
+	waitUntilTWIReady();
+	//printByte(TWDR);
 	return (TWDR);
 }

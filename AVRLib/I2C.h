@@ -26,8 +26,7 @@
 
 #define I2C_START 					TWCR |= (1 << TWEN) | (1 << TWINT) | (1 << TWSTA);
 #define I2C_STOP					TWCR |= (1 << TWEN) | (1 << TWINT) | (1 << TWSTO);
-#define I2C_ENABLE_ACK				TWCR |= (1 << TWEA);
-#define I2C_DISABLE_ACK				TWCR &= ~(1 << TWEA);
+
 
 // Specify Transmission Parameters
 // The maximum amount of data we will send at once is 3 bytes
@@ -41,7 +40,9 @@ void waitUntilTWIReady(void);
 
 void i2cSend(uint8_t data);
 
-uint8_t i2cRead();
+uint8_t i2cReadAck();
+
+uint8_t i2cReadNack();
 
 
 

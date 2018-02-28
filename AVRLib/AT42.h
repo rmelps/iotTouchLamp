@@ -38,7 +38,7 @@
 #define DI_2						0x30
 
 // ----- Settings to initialize
-#define NEG_THRESH_VAL				20
+#define NEG_THRESH_VAL				10
 #define AKS_VAL						1
 #define DI_VAL						4
 
